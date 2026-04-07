@@ -28,8 +28,8 @@ provider "apecloud" {
 resource "apecloud_cluster" "my_mssql" {
   name             = "my-mssql-cluster"
   display_name     = "my-mssql-cluster"
-  org_name         = "alal-test"
-  environment_name = "kb10"
+  org_name         = "my-org"
+  environment_name = "prod"
   engine           = "mssql"
   version          = "2022.19.0"
   mode             = "cluster"
@@ -80,7 +80,7 @@ resource "apecloud_cluster" "my_mssql" {
   backup = {
     auto_backup                 = true
     auto_backup_method          = "full"
-    backup_repo                 = "kb10-backuprepo-rp1"
+    backup_repo                 = "my-backuprepo"
     retention_period            = "7d"
     retention_policy            = "LastOne"
     cron_expression             = "0 18 * * *"

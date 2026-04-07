@@ -7,12 +7,12 @@ terraform {
 }
 
 provider "apecloud" {
-  api_url        = "https://api-dev.apecloud.cn"
+  api_url = "https://api-dev.apecloud.cn"
 
-  api_key        = "your_api_key"
-  api_secret     = "your_api_secret"
+  api_key    = "your_api_key"
+  api_secret = "your_api_secret"
 
-  admin_api_key  = "your_admin_api_key"
+  admin_api_key    = "your_admin_api_key"
   admin_api_secret = "your_admin_api_secret"
 
   # if you need to skip verify, please set https_skip_verify = true

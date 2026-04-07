@@ -7,12 +7,12 @@ terraform {
 }
 
 provider "apecloud" {
-  api_url        = "https://api-dev.apecloud.cn"
+  api_url = "https://api-dev.apecloud.cn"
 
-  api_key        = "your_api_key"
-  api_secret     = "your_api_secret"
+  api_key    = "your_api_key"
+  api_secret = "your_api_secret"
 
-  admin_api_key  = "your_admin_api_key"
+  admin_api_key    = "your_admin_api_key"
   admin_api_secret = "your_admin_api_secret"
 
   # if you need to skip verify, please set https_skip_verify = true
@@ -22,8 +22,8 @@ provider "apecloud" {
 resource "apecloud_cluster" "my_replication_redis" {
   name             = "my-redis"
   display_name     = "my-redis"
-  org_name         = "alal-test"
-  environment_name = "kb10"
+  org_name         = "my-org"
+  environment_name = "prod"
   engine           = "redis"
   version          = "7.2.12"
   mode             = "replication" # or "standalone" "cluster" "sentinel"
@@ -156,7 +156,7 @@ resource "apecloud_cluster" "my_sentinel_redis" {
   environment_name = "prod"
   engine           = "redis"
   version          = "7.2.12"
-  mode             = "sentinel" 
+  mode             = "sentinel"
   cluster_type     = "Normal"
   project          = "kubeblocks-cloud-ns"
 

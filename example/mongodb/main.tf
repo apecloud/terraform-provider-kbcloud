@@ -23,8 +23,8 @@ provider "apecloud" {
 resource "apecloud_cluster" "my_mongodb_sharding" {
   name             = "my-mongodb-sharding"
   display_name     = "my-mongodb-sharding"
-  org_name         = "alal-test"
-  environment_name = "kb10"
+  org_name         = "my-org"
+  environment_name = "prod"
   engine           = "mongodb"
   version          = "8.0.17"
   mode             = "sharding"
@@ -110,7 +110,7 @@ resource "apecloud_cluster" "my_mongodb_sharding" {
   backup = {
     auto_backup              = true
     auto_backup_method       = "pbm-physical"
-    backup_repo              = "kb10-backuprepo-rp1"
+    backup_repo              = "my-backuprepo"
     retention_period         = "7d"
     retention_policy         = "LastOne"
     cron_expression          = "0 18 * * *"
@@ -123,8 +123,8 @@ resource "apecloud_cluster" "my_mongodb_sharding" {
 resource "apecloud_cluster" "my_mongodb_replicaset" {
   name             = "my-mongodb-replicaset"
   display_name     = "my-mongodb-replicaset"
-  org_name         = "alal-test"
-  environment_name = "kb10"
+  org_name         = "my-org"
+  environment_name = "prod"
   engine           = "mongodb"
   version          = "6.0.27"
   mode             = "replicaset"
@@ -174,7 +174,7 @@ resource "apecloud_cluster" "my_mongodb_replicaset" {
   backup = {
     auto_backup              = true
     auto_backup_method       = "pbm-physical"
-    backup_repo              = "kb10-backuprepo-rp1"
+    backup_repo              = "my-backuprepo"
     retention_period         = "7d"
     retention_policy         = "LastOne"
     cron_expression          = "0 18 * * *"
@@ -188,8 +188,8 @@ resource "apecloud_cluster" "my_mongodb_replicaset" {
 resource "apecloud_cluster" "my_mongodb_standalone" {
   name             = "my-mongodb-standalone"
   display_name     = "my-mongodb-standalone"
-  org_name         = "alal-test"
-  environment_name = "kb10"
+  org_name         = "my-org"
+  environment_name = "prod"
   engine           = "mongodb"
   version          = "6.0.27"
   mode             = "standalone"
@@ -239,7 +239,7 @@ resource "apecloud_cluster" "my_mongodb_standalone" {
   backup = {
     auto_backup              = true
     auto_backup_method       = "pbm-physical"
-    backup_repo              = "kb10-backuprepo-rp1"
+    backup_repo              = "my-backuprepo"
     retention_period         = "7d"
     retention_policy         = "LastOne"
     cron_expression          = "0 18 * * *"

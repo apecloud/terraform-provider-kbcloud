@@ -7,12 +7,12 @@ terraform {
 }
 
 provider "apecloud" {
-  api_url        = "https://api-dev.apecloud.cn"
+  api_url = "https://api-dev.apecloud.cn"
 
-  api_key        = "your_api_key"
-  api_secret     = "your_api_secret"
+  api_key    = "your_api_key"
+  api_secret = "your_api_secret"
 
-  admin_api_key  = "your_admin_api_key"
+  admin_api_key    = "your_admin_api_key"
   admin_api_secret = "your_admin_api_secret"
 
   # if you need to skip verify, please set https_skip_verify = true
@@ -23,8 +23,8 @@ provider "apecloud" {
 resource "apecloud_cluster" "my_combined_kafka" {
   name             = "my-combined-kafka"
   display_name     = "my-combined-kafka"
-  org_name         = "alal-test"
-  environment_name = "kb10"
+  org_name         = "my-org"
+  environment_name = "prod"
   engine           = "kafka"
   version          = "3.9.0"
   mode             = "combined" # support "combined" "separated" "withZookeeper"
@@ -87,7 +87,7 @@ resource "apecloud_cluster" "my_combined_kafka" {
   backup = {
     auto_backup        = true
     auto_backup_method = "topics"
-    backup_repo        = "kb10-backuprepo-rp1"
+    backup_repo        = "my-backuprepo"
     retention_period   = "7d"
     retention_policy   = "LastOne"
     cron_expression    = "0 18 * * *"
@@ -99,8 +99,8 @@ resource "apecloud_cluster" "my_combined_kafka" {
 resource "apecloud_cluster" "my_separated_kafka" {
   name             = "my-separated-kafka"
   display_name     = "my-separated-kafka"
-  org_name         = "alal-test"
-  environment_name = "kb10"
+  org_name         = "my-org"
+  environment_name = "prod"
   engine           = "kafka"
   version          = "3.9.0"
   mode             = "separated"
@@ -169,7 +169,7 @@ resource "apecloud_cluster" "my_separated_kafka" {
   backup = {
     auto_backup        = true
     auto_backup_method = "topics"
-    backup_repo        = "kb10-backuprepo-rp1"
+    backup_repo        = "my-backuprepo"
     retention_period   = "7d"
     retention_policy   = "LastOne"
     cron_expression    = "0 18 * * *"
@@ -181,8 +181,8 @@ resource "apecloud_cluster" "my_separated_kafka" {
 resource "apecloud_cluster" "my_zookeeper_kafka" {
   name             = "my-zookeeper-kafka"
   display_name     = "my-zookeeper-kafka"
-  org_name         = "alal-test"
-  environment_name = "kb10"
+  org_name         = "my-org"
+  environment_name = "prod"
   engine           = "kafka"
   version          = "2.8.2"
   mode             = "withZookeeper-10"
@@ -202,7 +202,7 @@ resource "apecloud_cluster" "my_zookeeper_kafka" {
   service_refs = [
     {
       name    = "zookeeper"
-      cluster = "oak24" 
+      cluster = "oak24"
     }
   ]
 
@@ -250,7 +250,7 @@ resource "apecloud_cluster" "my_zookeeper_kafka" {
   backup = {
     auto_backup        = true
     auto_backup_method = "topics"
-    backup_repo        = "kb10-backuprepo-rp1"
+    backup_repo        = "my-backuprepo"
     retention_period   = "7d"
     retention_policy   = "LastOne"
     cron_expression    = "0 18 * * *"
