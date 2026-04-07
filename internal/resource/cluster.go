@@ -175,7 +175,7 @@ func (r *ClusterResource) Read(ctx context.Context, req resource.ReadRequest, re
 		if diags.Contains(utils.NewNotFoundErrorDiagnostic(data.Name.ValueString(), data.OrgName.ValueString())) {
 			resp.State.RemoveResource(ctx)
 		}
-		resp.Diagnostics.Append(diags...)
+		resp.Diagnostics.Append(diag.NewWarningDiagnostic("cluster not found", fmt.Sprintf("cluster %s in org %s not found", data.Name.ValueString(), data.OrgName.ValueString())))
 		return
 	}
 	// Save updated data into Terraform state
@@ -312,7 +312,7 @@ func (r *ClusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		resp.Diagnostics.Append(diags...)
 	}()
 
-	body, updateDiags := clusterResourceToClusterUpdate(ctx, data)
+	body, updateDiags := clusterResourceToClusterUpdate(ctx, &data)
 	diags.Append(updateDiags...)
 	if diags.HasError() {
 		return
@@ -507,29 +507,16 @@ func clusterResourceToClusterCreate(ctx context.Context, data *mytypes.ClustersR
 	}
 
 	if !data.Extra.IsNull() && !data.Extra.IsUnknown() {
-		// The most reliable way to perform a deep conversion of arbitrary dynamic
-		// terraform types to pure Go maps without leaving framework types (like basetypes.StringValue)
-		// inside the nested structures is to round-trip it via JSON.
-		// Since we need a map[string]interface{} for the API client, this works perfectly.
-		b, err := json.Marshal(data.Extra)
-		if err != nil {
-			diags.AddError(
-				"Invalid Extra Configuration",
-				fmt.Sprintf("Failed to marshal extra configuration to JSON: %s", err),
-			)
-			return nil, diags
+		// In Terraform Plugin Framework, types.Dynamic holds arbitrary underlying types
+		// (e.g. types.Map, types.Object). However, basetypes.ObjectValue doesn't
+		// implement json.Marshaler natively for its internal attributes.
+		// We need to recursively extract the values into pure Go types.
+		extraMap := utils.ExtractAttrValue(ctx, data.Extra)
+		if extraMap != nil {
+			if m, ok := extraMap.(map[string]interface{}); ok && len(m) > 0 {
+				body.Extra = m
+			}
 		}
-
-		var extraMap map[string]interface{}
-		if err := json.Unmarshal(b, &extraMap); err != nil {
-			diags.AddError(
-				"Invalid Extra Configuration",
-				fmt.Sprintf("Failed to unmarshal extra configuration from JSON: %s", err),
-			)
-			return nil, diags
-		}
-
-		body.Extra = extraMap
 	}
 
 	if !data.NodeGroup.IsNull() && !data.NodeGroup.IsUnknown() {
@@ -553,12 +540,17 @@ func clusterResourceToClusterCreate(ctx context.Context, data *mytypes.ClustersR
 		}
 	}
 	var apiParamTpls []admin.ParamTplsItem
-	for _, paramTpl := range paramTpls {
-		apiParamTpls = append(apiParamTpls, admin.ParamTplsItem{
-			Component:         paramTpl.Component.ValueStringPointer(),
-			ParamTplName:      paramTpl.ParamTplName.ValueStringPointer(),
-			ParamTplPartition: admin.ParameterTemplatePartition(paramTpl.ParamTplPartition.ValueString()).Ptr(),
-		})
+	if !data.ParamTpls.IsNull() && !data.ParamTpls.IsUnknown() {
+		for _, paramTpl := range paramTpls {
+			apiParamTpls = append(apiParamTpls, admin.ParamTplsItem{
+				Component:         paramTpl.Component.ValueStringPointer(),
+				ParamTplName:      paramTpl.ParamTplName.ValueStringPointer(),
+				ParamTplPartition: admin.ParameterTemplatePartition(paramTpl.ParamTplPartition.ValueString()).Ptr(),
+			})
+		}
+	} else {
+		// explicitly use an empty slice rather than nil so JSON marshal generates `[]`
+		apiParamTpls = make([]admin.ParamTplsItem, 0)
 	}
 
 	body.ParamTpls = apiParamTpls
@@ -836,7 +828,7 @@ func clusterResourceToClusterCreate(ctx context.Context, data *mytypes.ClustersR
 }
 
 // clusterResourceToClusterUpdate converts cluster update body from resource model
-func clusterResourceToClusterUpdate(ctx context.Context, data mytypes.ClustersResourceModel) (*admin.ClusterUpdate, diag.Diagnostics) {
+func clusterResourceToClusterUpdate(ctx context.Context, data *mytypes.ClustersResourceModel) (*admin.ClusterUpdate, diag.Diagnostics) {
 	var (
 		update admin.ClusterUpdate
 		diags  diag.Diagnostics
