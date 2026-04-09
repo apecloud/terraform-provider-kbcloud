@@ -8,10 +8,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	tfresource "github.com/hashicorp/terraform-plugin-framework/resource"
 
-	"github.com/apecloud/terraform-provider-apecloud/internal/client"
-	ds "github.com/apecloud/terraform-provider-apecloud/internal/datasource"
-	res "github.com/apecloud/terraform-provider-apecloud/internal/resource"
-	"github.com/apecloud/terraform-provider-apecloud/internal/types"
+	"github.com/apecloud/terraform-provider-kbcloud/internal/client"
+	ds "github.com/apecloud/terraform-provider-kbcloud/internal/datasource"
+	res "github.com/apecloud/terraform-provider-kbcloud/internal/resource"
+	"github.com/apecloud/terraform-provider-kbcloud/internal/types"
 )
 
 type KubeBlockEnterpriseProvider struct {
@@ -45,7 +45,7 @@ func (p *KubeBlockEnterpriseProvider) Configure(ctx context.Context, req provide
 }
 
 func (a *KubeBlockEnterpriseProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "apecloud"
+	resp.TypeName = "kbcloud"
 }
 
 func (a *KubeBlockEnterpriseProvider) Resources(context.Context) []func() tfresource.Resource {
@@ -62,24 +62,25 @@ func (a *KubeBlockEnterpriseProvider) DataSources(context.Context) []func() data
 
 func (a *KubeBlockEnterpriseProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "This is the official Terraform Provider for KubeBlocks Enterprise, allowing you to manage KubeBlocks clusters, backups, and other Enterprise resources via infrastructure as code.",
 		Attributes: map[string]schema.Attribute{
 			"api_key": schema.StringAttribute{
-				Description: "The organization-level API key to use for requests to KubeBlocks Enterprise. If not provided, the provider will use the admin-level API key.",
+				Description: "The organization-level API key to use for requests to KubeBlocks Enterprise. If not provided, the provider will use the admin-level API key. If both are provided, the admin-level API key will be used.",
 				Sensitive:   true,
 				Optional:    true,
 			},
 			"api_secret": schema.StringAttribute{
-				Description: "The organization-level API secret to use for requests to KubeBlocks Enterprise. If not provided, the provider will use the admin-level API secret.",
+				Description: "The organization-level API secret to use for requests to KubeBlocks Enterprise. If not provided, the provider will use the admin-level API secret. If both are provided, the admin-level API secret will be used.",
 				Sensitive:   true,
 				Optional:    true,
 			},
 			"admin_api_key": schema.StringAttribute{
-				Description: "The admin-level API key to use for requests to KubeBlocks Enterprise. If not provided, the provider will use the organization-level API key.",
+				Description: "The admin-level API key to use for requests to KubeBlocks Enterprise. If not provided, the provider will use the organization-level API key. If both are provided, the admin-level API key will be used.",
 				Sensitive:   true,
 				Optional:    true,
 			},
 			"admin_api_secret": schema.StringAttribute{
-				Description: "The admin-level API secret to use for requests to KubeBlocks Enterprise. If not provided, the provider will use the organization-level API secret.",
+				Description: "The admin-level API secret to use for requests to KubeBlocks Enterprise. If not provided, the provider will use the organization-level API secret. If both are provided, the admin-level API secret will be used.",
 				Sensitive:   true,
 				Optional:    true,
 			},
