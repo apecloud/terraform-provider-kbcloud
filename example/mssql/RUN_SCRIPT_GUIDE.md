@@ -1,8 +1,8 @@
-# MongoDB Terraform Test Script Guide
+# MSSQL Terraform Test Script Guide
 
 ## 📖 Overview
 
-The `run.sh` script provides a command-line interface for managing MongoDB clusters on KubeBlocks Cloud using Terraform. It simplifies cluster operations by allowing you to configure and execute Terraform commands through simple command-line parameters.
+The `run.sh` script provides a command-line interface for managing MSSQL clusters on KubeBlocks Cloud using Terraform. It simplifies cluster operations by allowing you to configure and execute Terraform commands through simple command-line parameters.
 
 ---
 
@@ -23,7 +23,7 @@ chmod +x run.sh
 # View help
 ./run.sh --help
 
-# Create a default MongoDB cluster
+# Create a default MSSQL cluster
 ./run.sh -t 1
 
 # Destroy the cluster
@@ -55,19 +55,19 @@ chmod +x run.sh
 
 | Parameter | Short | Long | Default | Description |
 |-----------|-------|------|---------|-------------|
-| Cluster Name | `-cn` | `--cluster-name` | `my-pg` | Unique cluster identifier |
-| Engine | `-e` | `--engine` | `pg` | Database engine type |
-| Version | `-v` | `--version` | `8.0.44` | Engine version |
-| Mode | `-m` | `--mode` | `replication` | Deployment mode (standalone/replication) |
+| Cluster Name | `-cn` | `--cluster-name` | `my-mssql` | Unique cluster identifier |
+| Engine | `-e` | `--engine` | `mssql` | Database engine type |
+| Version | `-v` | `--version` | `2022.19.0` | Engine version |
+| Mode | `-m` | `--mode` | `cluster` | Deployment mode (cluster) |
 | Environment | `-env` | `--environment` | `prod` | Environment name (dev/staging/prod) |
 
 ### Resource Configuration
 
 | Parameter | Short | Long | Default | Description |
 |-----------|-------|------|---------|-------------|
-| Replicas | `-r` | `--replicas` | `2` | Number of replicas |
+| Replicas | `-r` | `--replicas` | `3` | Number of replicas |
 | Storage Size | `-s` | `--storage-size` | `20` | Storage size in GB |
-| Class Code | `-cc` | `--class-code` | `pg.replication.pg.1c2g.general` | Instance specification |
+| Class Code | `-cc` | `--class-code` | `mssql.cluster.mssql.2c4g.general` | Instance specification |
 
 ### Advanced Options
 
@@ -75,7 +75,7 @@ chmod +x run.sh
 |-----------|-------|------|---------|-------------|
 | Termination Policy | `-tp` | `--termination-policy` | `Delete` | Delete or DoNotTerminate |
 | Auto Backup | `-ab` | `--auto-backup` | `false` | Enable automatic backup |
-| Backup Method | `-bm` | `--backup-method` | - | Backup method (xtrabackup) |
+| Backup Method | `-bm` | `--backup-method` | - | Backup method (full/incremental/transaction-log) |
 | Backup Schedule | `-bs` | `--backup-schedule` | - | Cron expression for backup schedule |
 | Retention Policy | `-rp` | `--retention-policy` | `LastOne` | Backup retention policy |
 | Custom Params | `-cp` | `--custom-params` | - | Custom parameters (JSON format) |
@@ -101,18 +101,18 @@ chmod +x run.sh
 
 ```bash
 ./run.sh -t 1 \
-    -cn "pg-dev" \
+    -cn "mssql-dev" \
     -env "dev" \
-    -r 1 \
-    -s 10 \
-    -cc "pg.replication.pg.1c2g.general"
+    -r 2 \
+    -s 20 \
+    -cc "mssql.cluster.mssql.2c4g.general"
 ```
 
 **What this does:**
-- Creates a single-replica MongoDB cluster
-- 10GB storage
+- Creates a 2-replica MSSQL cluster
+- 20GB storage
 - Minimal resources for development
-- Named "pg-dev"
+- Named "mssql-dev"
 
 ---
 
@@ -120,11 +120,11 @@ chmod +x run.sh
 
 ```bash
 ./run.sh -t 1 \
-    -cn "pg-prod" \
+    -cn "mssql-prod" \
     -env "prod" \
     -r 3 \
     -s 100 \
-    -cc "pg.replication.pg.4c8g.performance" \
+    -cc "mssql.cluster.mssql.4c8g.performance" \
     -tp "DoNotTerminate"
 ```
 
@@ -140,7 +140,7 @@ chmod +x run.sh
 
 ```bash
 ./run.sh -t 4 \
-    -cc "pg.replication.pg.8c16g.performance"
+    -cc "mssql.cluster.mssql.8c16g.performance"
 ```
 
 **What this does:**
@@ -169,14 +169,14 @@ chmod +x run.sh
 ```bash
 ./run.sh -t 7 \
     -ab true \
-    -bm "xtrabackup" \
+    -bm "full" \
     -bs "0 2 * * *" \
     -rp "7d"
 ```
 
 **What this does:**
 - Enables daily backups at 2:00 AM
-- Uses xtrabackup method for hot backups
+- Uses full backup method
 - Retains backups for 7 days
 
 ---
@@ -185,13 +185,13 @@ chmod +x run.sh
 
 ```bash
 ./run.sh -t 6 \
-    -cp '{"max_connections": "500", "innodb_buffer_pool_size": "2G"}'
+    -cp '{"max_connections": "500", "collation": "Chinese_PRC_CI_AS"}'
 ```
 
 **What this does:**
-- Updates MongoDB configuration parameters
+- Updates MSSQL configuration parameters
 - Changes max connections to 500
-- Sets InnoDB buffer pool to 2GB
+- Sets collation to Chinese_PRC_CI_AS
 - Applies changes without restart (if possible)
 
 ---
@@ -243,21 +243,21 @@ chmod +x run.sh
 # Step 1: Create cluster
 ./run.sh -t 1 \
     -cn "my-app-db" \
-    -r 2 \
+    -r 3 \
     -s 50
 
 # Step 2: Scale up after load increases
 ./run.sh -t 4 \
-    -cc "pg.replication.pg.2c4g.general"
+    -cc "mssql.cluster.mssql.4c8g.performance"
 
 # Step 3: Add more replicas for read scaling
 ./run.sh -t 5 \
-    -r 4
+    -r 5
 
 # Step 4: Enable backups
 ./run.sh -t 7 \
     -ab true \
-    -bm "xtrabackup" \
+    -bm "full" \
     -bs "0 3 * * *"
 
 # Step 5: When done, destroy
@@ -270,17 +270,17 @@ chmod +x run.sh
 
 ```bash
 # Test small configuration
-./run.sh -t 1 -cn "test-small" -r 1 -s 10 -cc "pg.replication.pg.1c2g.general"
+./run.sh -t 1 -cn "test-small" -r 2 -s 20 -cc "mssql.cluster.mssql.2c4g.general"
 # ... run tests ...
 ./run.sh -t 2
 
 # Test medium configuration
-./run.sh -t 1 -cn "test-medium" -r 2 -s 50 -cc "pg.replication.pg.2c4g.general"
+./run.sh -t 1 -cn "test-medium" -r 3 -s 50 -cc "mssql.cluster.mssql.4c8g.performance"
 # ... run tests ...
 ./run.sh -t 2
 
 # Test large configuration
-./run.sh -t 1 -cn "test-large" -r 3 -s 100 -cc "pg.replication.pg.4c8g.performance"
+./run.sh -t 1 -cn "test-large" -r 3 -s 100 -cc "mssql.cluster.mssql.8c16g.performance"
 # ... run tests ...
 ./run.sh -t 2
 ```
@@ -298,7 +298,7 @@ set -e
 CLUSTER_NAME="app-${BUILD_NUMBER}"
 ENVIRONMENT="${DEPLOY_ENV:-staging}"
 
-echo "Deploying MongoDB cluster: $CLUSTER_NAME"
+echo "Deploying MSSQL cluster: $CLUSTER_NAME"
 
 # Create cluster
 ./run.sh -t 1 \
@@ -338,11 +338,11 @@ You can also edit `terraform.tfvars` directly:
 
 ```hcl
 # terraform.tfvars
-cluster_name     = "my-pg"
+cluster_name     = "my-mssql"
 environment_name = "prod"
 replicas         = 3
 storage_size_gb  = 100
-class_code       = "pg.replication.pg.4c8g.performance"
+class_code       = "mssql.cluster.mssql.4c8g.performance"
 
 # API credentials (recommended to use environment variables)
 api_key          = "your_api_key"
@@ -492,7 +492,7 @@ Create a custom tfvars file for complex changes:
 
 ```bash
 cat > custom-ops.tfvars << EOF
-class_code = "pg.replication.pg.4c8g.performance"
+class_code = "mssql.cluster.mssql.4c8g.performance"
 replicas = 3
 auto_backup_enabled = true
 backup_schedule = "0 2 * * *"
@@ -505,9 +505,9 @@ terraform apply -var-file=terraform.tfvars -var-file=custom-ops.tfvars
 
 ```bash
 # Save common commands as shell functions
-alias pg-create='./run.sh -t 1 -cn "my-db" -r 2 -s 50'
-alias pg-scale='./run.sh -t 4 -cc "pg.replication.pg.2c4g.general"'
-alias pg-destroy='./run.sh -t 2'
+alias mssql-create='./run.sh -t 1 -cn "my-db" -r 3 -s 50'
+alias mssql-scale='./run.sh -t 4 -cc "mssql.cluster.mssql.4c8g.performance"'
+alias mssql-destroy='./run.sh -t 2'
 ```
 
 ### 4. Backup terraform.tfvars
@@ -520,7 +520,7 @@ cp terraform.tfvars terraform.tfvars.backup.$(date +%Y%m%d)
 
 ## 📚 Additional Resources
 
-- [MongoDB Example README](README.md)
+- [MSSQL Example README](README.md)
 - [Operations Examples](ops-examples/README.md)
 - [Migration Guide](MIGRATION_GUIDE.md)
 - [KubeBlocks Documentation](https://kubeblocks.io/docs)

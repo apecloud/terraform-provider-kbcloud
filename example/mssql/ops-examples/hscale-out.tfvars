@@ -1,5 +1,5 @@
 # ============================================================================
-# HScale (Horizontal Scaling) Example Configuration for Redis
+# HScale (Horizontal Scaling) Example Configuration for MSSQL
 # ============================================================================
 # This file demonstrates how to scale replicas (add/remove nodes)
 # 
@@ -7,12 +7,12 @@
 #   terraform apply -var-file=terraform.tfvars -var-file=ops-examples/hscale-out.tfvars
 # ============================================================================
 
-# Scale OUT: 2 replicas -> 3 replicas
-replicas = 3
+# Scale OUT: 3 replicas -> 5 replicas
+replicas = 5
 
 # ============================================================================
 # Alternative: Scale IN (reduce replicas)
 # Uncomment the following line to scale in
-# Note: For Redis replication, minimum is usually 1 primary + 1 replica
+# Note: For MSSQL Always On, minimum is usually 3 for quorum
 # ============================================================================
-# replicas = 2
+# replicas = 3

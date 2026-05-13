@@ -1,6 +1,6 @@
-# MongoDB Operations Examples
+# Kafka Operations Examples
 
-This directory contains example configurations for common MongoDB cluster operations.
+This directory contains example configurations for common Kafka cluster operations.
 
 ## 📋 Available Operations
 
@@ -10,7 +10,7 @@ This directory contains example configurations for common MongoDB cluster operat
 Scale compute resources (CPU/Memory) and/or storage:
 
 ```bash
-# Scale up from 1c2g to 2c4g
+# Scale up from 1c1g to 2c4g
 terraform apply \
   -var-file=terraform.tfvars \
   -var-file=ops-examples/vscale-up-compute.tfvars
@@ -22,7 +22,7 @@ terraform apply \
 Add or remove replicas:
 
 ```bash
-# Scale out from 2 to 3 replicas
+# Scale out from 3 to 5 replicas
 terraform apply \
   -var-file=terraform.tfvars \
   -var-file=ops-examples/hscale-out.tfvars
@@ -105,8 +105,8 @@ You can combine multiple operations in a single apply:
 ```bash
 # Scale up AND add replicas at the same time
 cat > combined-ops.tfvars << EOF
-class_code = "postgresql.replication.postgresql.2c4g.general"
-replicas = 3
+class_code = "kafka.combined.kafka-combine.2c4g.general"
+replicas = 5
 EOF
 
 terraform apply \

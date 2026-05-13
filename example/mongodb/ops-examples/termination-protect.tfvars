@@ -1,5 +1,5 @@
 # ============================================================================
-# Termination Policy Example Configuration for Redis
+# Termination Policy Example Configuration for MongoDB
 # ============================================================================
 # This file demonstrates how to change termination policies
 # 
