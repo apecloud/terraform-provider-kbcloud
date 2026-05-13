@@ -57,7 +57,7 @@ variable "display_name" {
 variable "org_name" {
   description = "Organization name"
   type        = string
-  default     = "my-org"
+  default     = "default-org"
 }
 
 variable "environment_name" {

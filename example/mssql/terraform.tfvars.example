@@ -15,7 +15,7 @@ api_url = "https://kb-cloud-apiserver-endpoint.com/api"
 # Cluster Basic Configuration
 cluster_name     = "my-mssql-cluster"
 display_name     = "my-mssql-cluster"
-org_name         = "my-org"
+org_name         = "default-org"
 environment_name = "prod"
 project          = "kubeblocks-cloud-ns"
 

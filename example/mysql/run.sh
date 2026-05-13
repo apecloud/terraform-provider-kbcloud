@@ -9,10 +9,12 @@ set -o pipefail
 # Default Configuration
 # ============================================================================
 DEFAULT_CLUSTER_NAME="my-mysql"
+DEFAULT_DISPLAY_NAME="My MySQL Cluster"
 DEFAULT_ENGINE="mysql"
 DEFAULT_VERSION="8.0.44"
 DEFAULT_MODE="replication"
 DEFAULT_ENVIRONMENT="prod"
+DEFAULT_ORG_NAME="default-org"
 DEFAULT_REPLICAS=2
 DEFAULT_STORAGE_SIZE=20
 DEFAULT_CLASS_CODE="mysql.replication.mysql.1c2g.general"
@@ -41,10 +43,12 @@ Options:
                                               8) termination (change policy)
     
     -cn, --cluster-name                     Cluster name (default: $DEFAULT_CLUSTER_NAME)
+    -dn, --display-name                     Display name (default: $DEFAULT_DISPLAY_NAME)
     -e, --engine                            Database engine (default: $DEFAULT_ENGINE)
     -v, --version                           Engine version (default: $DEFAULT_VERSION)
     -m, --mode                              Deployment mode (default: $DEFAULT_MODE)
     -env, --environment                     Environment name (default: $DEFAULT_ENVIRONMENT)
+    -org, --org-name                        Organization name (default: $DEFAULT_ORG_NAME)
     
     -r, --replicas                          Number of replicas (default: $DEFAULT_REPLICAS)
     -s, --storage-size                      Storage size in GB (default: $DEFAULT_STORAGE_SIZE)
@@ -119,16 +123,19 @@ terraform_init_and_apply() {
     if [[ "$UNAME" == "Darwin" ]]; then
         # macOS
         [[ -n "$CLUSTER_NAME" ]] && sed -i '' "s/^cluster_name.*/cluster_name = \"$CLUSTER_NAME\"/" terraform.tfvars
-        [[ -n "$ENGINE" ]] && sed -i '' "s/^engine.*/engine = \"$ENGINE\"/" terraform.tfvars
+        [[ -n "$DISPLAY_NAME" ]] && sed -i '' "s/^display_name.*/display_name = \"$DISPLAY_NAME\"/" terraform.tfvars
+        [[ -n "$ENGINE" ]] && sed -i '' "s/^engine       = .*/engine = \"$ENGINE\"/" terraform.tfvars
         [[ -n "$VERSION" ]] && sed -i '' "s/^engine_version.*/engine_version = \"$VERSION\"/" terraform.tfvars
         [[ -n "$MODE" ]] && sed -i '' "s/^mode.*/mode = \"$MODE\"/" terraform.tfvars
         [[ -n "$ENVIRONMENT" ]] && sed -i '' "s/^environment_name.*/environment_name = \"$ENVIRONMENT\"/" terraform.tfvars
+        [[ -n "$ORG_NAME" ]] && sed -i '' "s/^org_name.*/org_name = \"$ORG_NAME\"/" terraform.tfvars
         [[ -n "$REPLICAS" ]] && sed -i '' "s/^replicas.*/replicas = $REPLICAS/" terraform.tfvars
         [[ -n "$STORAGE_SIZE" ]] && sed -i '' "s/^storage_size_gb.*/storage_size_gb = $STORAGE_SIZE/" terraform.tfvars
         [[ -n "$CLASS_CODE" ]] && sed -i '' "s/^class_code.*/class_code = \"$CLASS_CODE\"/" terraform.tfvars
         [[ -n "$TERMINATION_POLICY" ]] && sed -i '' "s/^termination_policy.*/termination_policy = \"$TERMINATION_POLICY\"/" terraform.tfvars
         
-        # API credentials (if provided)
+        # API configuration (if provided)
+        [[ -n "$API_URL" ]] && sed -i '' "s|^api_url = .*|api_url = \"$API_URL\"|" terraform.tfvars
         [[ -n "$API_KEY" ]] && sed -i '' "s/^# api_key.*/api_key = \"$API_KEY\"/" terraform.tfvars
         [[ -n "$API_SECRET" ]] && sed -i '' "s/^# api_secret.*/api_secret = \"$API_SECRET\"/" terraform.tfvars
         [[ -n "$ADMIN_API_KEY" ]] && sed -i '' "s/^# admin_api_key.*/admin_api_key = \"$ADMIN_API_KEY\"/" terraform.tfvars
@@ -136,16 +143,19 @@ terraform_init_and_apply() {
     else
         # Linux
         [[ -n "$CLUSTER_NAME" ]] && sed -i "s/^cluster_name.*/cluster_name = \"$CLUSTER_NAME\"/" terraform.tfvars
-        [[ -n "$ENGINE" ]] && sed -i "s/^engine.*/engine = \"$ENGINE\"/" terraform.tfvars
+        [[ -n "$DISPLAY_NAME" ]] && sed -i "s/^display_name.*/display_name = \"$DISPLAY_NAME\"/" terraform.tfvars
+        [[ -n "$ENGINE" ]] && sed -i "s/^engine       = .*/engine = \"$ENGINE\"/" terraform.tfvars
         [[ -n "$VERSION" ]] && sed -i "s/^engine_version.*/engine_version = \"$VERSION\"/" terraform.tfvars
         [[ -n "$MODE" ]] && sed -i "s/^mode.*/mode = \"$MODE\"/" terraform.tfvars
         [[ -n "$ENVIRONMENT" ]] && sed -i "s/^environment_name.*/environment_name = \"$ENVIRONMENT\"/" terraform.tfvars
+        [[ -n "$ORG_NAME" ]] && sed -i "s/^org_name.*/org_name = \"$ORG_NAME\"/" terraform.tfvars
         [[ -n "$REPLICAS" ]] && sed -i "s/^replicas.*/replicas = $REPLICAS/" terraform.tfvars
         [[ -n "$STORAGE_SIZE" ]] && sed -i "s/^storage_size_gb.*/storage_size_gb = $STORAGE_SIZE/" terraform.tfvars
         [[ -n "$CLASS_CODE" ]] && sed -i "s/^class_code.*/class_code = \"$CLASS_CODE\"/" terraform.tfvars
         [[ -n "$TERMINATION_POLICY" ]] && sed -i "s/^termination_policy.*/termination_policy = \"$TERMINATION_POLICY\"/" terraform.tfvars
         
-        # API credentials (if provided)
+        # API configuration (if provided)
+        [[ -n "$API_URL" ]] && sed -i "s|^api_url = .*|api_url = \"$API_URL\"|" terraform.tfvars
         [[ -n "$API_KEY" ]] && sed -i "s/^# api_key.*/api_key = \"$API_KEY\"/" terraform.tfvars
         [[ -n "$API_SECRET" ]] && sed -i "s/^# api_secret.*/api_secret = \"$API_SECRET\"/" terraform.tfvars
         [[ -n "$ADMIN_API_KEY" ]] && sed -i "s/^# admin_api_key.*/admin_api_key = \"$ADMIN_API_KEY\"/" terraform.tfvars
@@ -448,10 +458,12 @@ EOF
 main() {
     local TYPE=""
     local CLUSTER_NAME="$DEFAULT_CLUSTER_NAME"
+    local DISPLAY_NAME="$DEFAULT_DISPLAY_NAME"
     local ENGINE="$DEFAULT_ENGINE"
     local VERSION="$DEFAULT_VERSION"
     local MODE="$DEFAULT_MODE"
     local ENVIRONMENT="$DEFAULT_ENVIRONMENT"
+    local ORG_NAME="$DEFAULT_ORG_NAME"
     local REPLICAS="$DEFAULT_REPLICAS"
     local STORAGE_SIZE="$DEFAULT_STORAGE_SIZE"
     local CLASS_CODE="$DEFAULT_CLASS_CODE"
@@ -529,6 +541,10 @@ parse_command_line() {
                 CLUSTER_NAME="${2:-}"
                 shift
                 ;;
+            -dn|--display-name)
+                DISPLAY_NAME="${2:-}"
+                shift
+                ;;
             -e|--engine)
                 ENGINE="${2:-}"
                 shift
@@ -543,6 +559,10 @@ parse_command_line() {
                 ;;
             -env|--environment)
                 ENVIRONMENT="${2:-}"
+                shift
+                ;;
+            -org|--org-name)
+                ORG_NAME="${2:-}"
                 shift
                 ;;
             -r|--replicas)

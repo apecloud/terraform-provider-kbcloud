@@ -57,7 +57,7 @@ variable "display_name" {
 variable "org_name" {
   description = "Organization name"
   type        = string
-  default     = "my-org"
+  default     = "default-org"
 }
 
 variable "environment_name" {
@@ -173,7 +173,7 @@ variable "storage_size_gb" {
 variable "storage_class" {
   description = "Storage class name"
   type        = string
-  default     = "my-storage-class"
+  default     = "apelocal-hostpath-default"
 }
 
 variable "class_code" {
