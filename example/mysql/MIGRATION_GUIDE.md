@@ -184,7 +184,7 @@ storage_size_gb = 10
 EOF
 
 cat > test-large.tfvars << EOF
-class_code = "mysql.replication.mysql.8c16g.performance"
+class_code = "mysql.replication.mysql.8c16g.general"
 replicas = 5
 storage_size_gb = 500
 EOF
@@ -209,7 +209,7 @@ replicas = 1
 
 # prod.tfvars
 environment_name = "prod"
-class_code = "mysql.replication.mysql.4c8g.performance"
+class_code = "mysql.replication.mysql.4c8g.general"
 replicas = 3
 storage_size_gb = 100
 ```

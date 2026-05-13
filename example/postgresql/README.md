@@ -39,7 +39,7 @@ postgresql/
 ./run.sh -t 5 -r 3
 
 # Enable backups with WAL-G
-./run.sh -t 7 -ab true -bm "wal-g" -bs "0 2 * * *"
+./run.sh -t 7 -ab true -bm "wal-g-archive" -bs "0 2 * * *"
 
 # Destroy cluster
 ./run.sh -t 2
@@ -135,7 +135,7 @@ Configure automatic backups with WAL-G and PITR.
 
 **Using run.sh:**
 ```bash
-./run.sh -t 7 -ab true -bm "wal-g" -bs "0 2 * * *" -rp "7d"
+./run.sh -t 7 -ab true -bm "wal-g-archive" -bs "0 2 * * *" -rp "7d"
 ```
 
 **Using tfvars overlay:**
@@ -178,10 +178,10 @@ See [ops-examples/README.md](ops-examples/README.md#5-termination-policy) for mo
 ```bash
 # 1. Create production cluster with WAL-G backup
 ./run.sh -t 1 -cn "pg-prod" -env "prod" -r 3 -s 100 \
-  -cc "postgresql.replication.postgresql.4c8g.performance" -tp "DoNotTerminate"
+  -cc "postgresql.replication.postgresql.4c8g.general" -tp "DoNotTerminate"
 
 # 2. Enable WAL-G backups with PITR
-./run.sh -t 7 -ab true -bm "wal-g" -bs "0 2 * * *" -rp "7d"
+./run.sh -t 7 -ab true -bm "wal-g-archive" -bs "0 2 * * *" -rp "7d"
 ```
 
 ### Workflow 2: Development Environment

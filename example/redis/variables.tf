@@ -252,7 +252,7 @@ variable "sentinel_write_iops" {
 variable "sentinel_class_code" {
   description = "Sentinel instance class code"
   type        = string
-  default     = "redis.sentinel.redis-sentinel.0.5c0.5g.general"
+  default     = "redis.sentinel.redis-sentinel.1c2g.general"
 }
 
 # ============================================================================
@@ -318,7 +318,7 @@ variable "auto_backup_enabled" {
 variable "auto_backup_method" {
   description = "Auto backup method"
   type        = string
-  default     = "datafile"
+  default     = "aof"
 }
 
 variable "backup_schedule" {

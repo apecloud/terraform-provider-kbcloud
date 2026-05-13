@@ -179,7 +179,7 @@ See [ops-examples/README.md](ops-examples/README.md#5-termination-policy) for mo
 ```bash
 # 1. Create production cluster with separated mode
 ./run.sh -t 1 -cn "kafka-prod" -env "prod" -r 3 -s 100 \
-  -cc "kafka.separated.kafka-broker.4c8g.performance" -tp "DoNotTerminate"
+  -cc "kafka.separated.kafka-broker.4c8g.general" -tp "DoNotTerminate"
 
 # 2. Enable backups
 ./run.sh -t 7 -ab true -bm "topics" -bs "0 2 * * *" -rp "7d"

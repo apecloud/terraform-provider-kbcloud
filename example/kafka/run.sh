@@ -61,7 +61,7 @@ Options:
     -tp, --termination-policy               Termination policy (Delete/DoNotTerminate)
     
     -ab, --auto-backup                      Enable auto backup (true/false)
-    -bm, --backup-method                    Backup method (xtrabackup)
+    -bm, --backup-method                    Backup method (topics)
     -bs, --backup-schedule                  Backup schedule (cron expression)
     -rp, --retention-policy                 Retention policy (LastOne/7d/etc)
     
@@ -84,7 +84,7 @@ Examples:
         -env "prod" \\
         -r 3 \\
         -s 100 \\
-        -cc "kafka.separated.kafka-broker.4c8g.performance"
+        -cc "kafka.separated.kafka-broker.4c8g.general"
     
     # Scale up compute resources
     ./run.sh -t 4 \\

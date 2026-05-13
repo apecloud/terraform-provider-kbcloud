@@ -52,7 +52,7 @@ extra_sentinel = "{}"
 # Sentinel component configuration
 sentinel_component_name = "redis-sentinel"
 sentinel_replicas = 3
-sentinel_class_code = "redis.sentinel.redis-sentinel.0.5c0.5g.general"
+sentinel_class_code = "redis.sentinel.redis-sentinel.1c2g.general"
 ```
 
 **Total components:** 
@@ -72,7 +72,7 @@ cluster_name     = "redis-prod"
 mode             = "replication"
 replicas         = 3
 storage_size_gb  = 50
-class_code       = "redis.replication.redis.4c4g.performance"
+class_code       = "redis.replication.redis.4c8g.general"
 termination_policy = "DoNotTerminate"
 ```
 
@@ -94,7 +94,7 @@ comp_num         = 6        # 6 shards
 replicas         = 2        # 2 replicas per shard
 network_mode     = "HeadlessService"
 storage_size_gb  = 100
-class_code       = "redis.cluster.redis-cluster.4c2g.performance"
+class_code       = "redis.cluster.redis-cluster.4c2g.general"
 component_name   = "redis-cluster"
 param_tpl_name   = "redis-cluster-default-parameter-template"
 ```
@@ -133,7 +133,7 @@ class_code       = "redis.sentinel.redis.2c1g.general"
 
 # Sentinel component
 sentinel_replicas = 3
-sentinel_class_code = "redis.sentinel.redis-sentinel.0.5c0.5g.general"
+sentinel_class_code = "redis.sentinel.redis-sentinel.1c2g.general"
 ```
 
 **Deploy:**
@@ -218,7 +218,7 @@ Scale compute/storage for all nodes:
 
 ```bash
 ./run.sh -t 4 \
-    -cc "redis.replication.redis.4c4g.performance" \
+    -cc "redis.replication.redis.4c8g.general" \
     -s 100
 ```
 
@@ -383,7 +383,7 @@ class_code = "redis.cluster.redis-cluster.1c1g.general"  # Smaller instances
 
 **Sentinel Mode:**
 - Data nodes: Same as replication
-- Sentinel nodes: Minimal resources (0.5c0.5g typical)
+- Sentinel nodes: Minimal resources (1c2g typical)
 - Odd number of sentinels (3, 5, 7)
 
 ### 3. Backup Strategy

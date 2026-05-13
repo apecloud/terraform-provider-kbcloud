@@ -52,7 +52,7 @@ sentinel_replicas       = 3
 sentinel_storage_size_gb = 20
 sentinel_read_iops      = 500
 sentinel_write_iops     = 500
-sentinel_class_code     = "redis.sentinel.redis-sentinel.0.5c0.5g.general"
+sentinel_class_code     = "redis.sentinel.redis-sentinel.1c2g.general"
 
 # Extra Configuration (for sentinel mode)
 extra_sentinel = "{}"
@@ -63,7 +63,7 @@ param_tpl_partition = "default"
 
 # Backup Configuration
 auto_backup_enabled       = true
-auto_backup_method        = "datafile"
+auto_backup_method        = "aof"
 backup_repo               = "my-backuprepo"
 retention_period          = "7d"
 retention_policy          = "LastOne"

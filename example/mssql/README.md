@@ -181,7 +181,7 @@ See [ops-examples/README.md](ops-examples/README.md#5-termination-policy) for mo
 ```bash
 # 1. Create production cluster with Enterprise edition
 ./run.sh -t 1 -cn "mssql-prod" -env "prod" -r 3 -s 100 \
-  -cc "mssql.cluster.mssql.4c8g.performance" -tp "DoNotTerminate"
+  -cc "mssql.cluster.mssql.4c8g.general" -tp "DoNotTerminate"
 
 # 2. Enable backups with PITR
 ./run.sh -t 7 -ab true -bm "full" -bs "0 2 * * *" -rp "7d"

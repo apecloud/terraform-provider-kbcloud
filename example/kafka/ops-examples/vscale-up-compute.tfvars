@@ -17,5 +17,5 @@ class_code = "kafka.combined.kafka-combine.2c4g.general"
 # Alternative: Scale UP Both Compute and Storage
 # Uncomment the following lines to scale both
 # ============================================================================
-# class_code = "kafka.combined.kafka-combine.4c8g.performance"
+# class_code = "kafka.combined.kafka-combine.4c8g.general"
 # storage_size_gb = 100

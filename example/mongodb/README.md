@@ -179,7 +179,7 @@ See [ops-examples/README.md](ops-examples/README.md#5-termination-policy) for mo
 ```bash
 # 1. Create production cluster
 ./run.sh -t 1 -cn "mongo-prod" -env "prod" -r 3 -s 100 \
-  -cc "mongodb.replicaset.mongodb.4c8g.performance" -tp "DoNotTerminate"
+  -cc "mongodb.replicaset.mongodb.4c8g.general" -tp "DoNotTerminate"
 
 # 2. Enable backups with PBM
 ./run.sh -t 7 -ab true -bm "pbm-physical" -bs "0 2 * * *" -rp "7d"

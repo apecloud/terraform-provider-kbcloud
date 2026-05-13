@@ -64,7 +64,7 @@ cluster_name     = "mssql-prod"
 mode             = "cluster"
 replicas         = 3
 storage_size_gb  = 100
-class_code       = "mssql.cluster.mssql.4c8g.performance"
+class_code       = "mssql.cluster.mssql.4c8g.general"
 product_edition  = "Enterprise"
 termination_policy = "DoNotTerminate"
 collation        = "Chinese_PRC_CI_AS"
@@ -128,7 +128,7 @@ Scale compute/storage for all nodes:
 
 ```bash
 ./run.sh -t 4 \
-    -cc "mssql.cluster.mssql.4c8g.performance" \
+    -cc "mssql.cluster.mssql.4c8g.general" \
     -s 100
 ```
 

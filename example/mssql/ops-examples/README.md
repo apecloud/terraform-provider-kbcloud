@@ -105,7 +105,7 @@ You can combine multiple operations in a single apply:
 ```bash
 # Scale up AND add replicas at the same time
 cat > combined-ops.tfvars << EOF
-class_code = "mssql.cluster.mssql.4c8g.performance"
+class_code = "mssql.cluster.mssql.4c8g.general"
 replicas = 5
 EOF
 

@@ -114,7 +114,7 @@ broker_replicas         = 3
 controller_replicas     = 3
 broker_storage_gb       = 100
 controller_storage_gb   = 20
-broker_class_code       = "kafka.separated.kafka-broker.4c8g.performance"
+broker_class_code       = "kafka.separated.kafka-broker.4c8g.general"
 controller_class_code   = "kafka.separated.kafka-controller.2c4g.general"
 termination_policy      = "DoNotTerminate"
 ```
