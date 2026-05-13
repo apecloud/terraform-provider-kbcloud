@@ -263,21 +263,21 @@ All modes support backup with slight differences:
 
 ### Replication/Standalone
 ```hcl
-auto_backup_enabled = true
+auto_backup  = true
 pitr_enabled = true
 continuous_backup_method = "aof"
 ```
 
 ### Cluster Mode
 ```hcl
-auto_backup_enabled = true
+auto_backup  = true
 pitr_enabled = false  # PITR not supported in cluster mode
 continuous_backup_method = "aof"
 ```
 
 ### Sentinel Mode
 ```hcl
-auto_backup_enabled = true
+auto_backup  = true
 pitr_enabled = false  # PITR usually disabled for sentinel
 continuous_backup_method = "aof"
 ```

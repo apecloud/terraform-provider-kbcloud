@@ -60,7 +60,8 @@ Options:
     -br, --backup-repo                      Backup repository name
     -bm, --backup-method                    Backup method (xtrabackup)
     -bs, --backup-schedule                  Backup schedule (cron expression)
-    -rp, --retention-policy                 Retention policy (LastOne/7d/etc)
+    -rpd, --retention-period                Retention period (7d, 30d, etc)
+    -rp, --retention-policy                 Retention policy (LastOne, LastThree, etc)
     
     -cp, --custom-params                    Custom parameters (JSON format)
     -ptn, --param-template                  Parameter template name
@@ -95,7 +96,8 @@ Examples:
     ./run.sh -t 7 \\
         -ab true \\
         -bm "xtrabackup" \\
-        -bs "0 2 * * *"
+        -bs "0 2 * * *" \\
+        -rpd "7d"
     
     # Destroy cluster
     ./run.sh -t 2
@@ -385,11 +387,12 @@ terraform_backup() {
     # Create backup tfvars
     cat > ops-examples/backup-operation.tfvars << EOF
 # Backup Configuration Operation
-auto_backup_enabled = $AUTO_BACKUP
+auto_backup = $AUTO_BACKUP
 EOF
     
     [[ -n "$BACKUP_METHOD" ]] && echo "auto_backup_method = \"$BACKUP_METHOD\"" >> ops-examples/backup-operation.tfvars
-    [[ -n "$BACKUP_SCHEDULE" ]] && echo "backup_schedule = \"$BACKUP_SCHEDULE\"" >> ops-examples/backup-operation.tfvars
+    [[ -n "$BACKUP_SCHEDULE" ]] && echo "cron_expression = \"$BACKUP_SCHEDULE\"" >> ops-examples/backup-operation.tfvars
+    [[ -n "$RETENTION_PERIOD" ]] && echo "retention_period = \"$RETENTION_PERIOD\"" >> ops-examples/backup-operation.tfvars
     [[ -n "$RETENTION_POLICY" ]] && echo "retention_policy = \"$RETENTION_POLICY\"" >> ops-examples/backup-operation.tfvars
     
     echo ""
@@ -397,7 +400,8 @@ EOF
     echo "  Auto Backup:     $AUTO_BACKUP"
     [[ -n "$BACKUP_METHOD" ]] && echo "  Method:          $BACKUP_METHOD"
     [[ -n "$BACKUP_SCHEDULE" ]] && echo "  Schedule:        $BACKUP_SCHEDULE"
-    [[ -n "$RETENTION_POLICY" ]] && echo "  Retention:       $RETENTION_POLICY"
+    [[ -n "$RETENTION_PERIOD" ]] && echo "  Retention Period: $RETENTION_PERIOD"
+    [[ -n "$RETENTION_POLICY" ]] && echo "  Retention Policy: $RETENTION_POLICY"
     echo ""
     
     echo "Running: terraform plan"
@@ -475,6 +479,7 @@ main() {
     local BACKUP_METHOD=""
     local BACKUP_REPO=""
     local BACKUP_SCHEDULE=""
+    local RETENTION_PERIOD=""
     local RETENTION_POLICY=""
     local CUSTOM_PARAMS=""
     local PARAM_TEMPLATE=""
@@ -599,6 +604,10 @@ parse_command_line() {
                 ;;
             -bs|--backup-schedule)
                 BACKUP_SCHEDULE="${2:-}"
+                shift
+                ;;
+            -rpd|--retention-period)
+                RETENTION_PERIOD="${2:-}"
                 shift
                 ;;
             -rp|--retention-policy)

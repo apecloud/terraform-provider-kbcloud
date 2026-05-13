@@ -227,6 +227,12 @@ variable "backup_repo" {
   default     = "my-backuprepo"
 }
 
+variable "retention_period" {
+  description = "Backup retention period (e.g., 7d, 30d)"
+  type        = string
+  default     = ""
+}
+
 variable "retention_policy" {
   description = "Backup retention policy"
   type        = string
@@ -239,7 +245,7 @@ variable "snapshot_volumes" {
   default     = false
 }
 
-variable "auto_backup_enabled" {
+variable "auto_backup" {
   description = "Enable automatic backup"
   type        = bool
   default     = false
@@ -251,13 +257,13 @@ variable "auto_backup_method" {
   default     = ""
 }
 
-variable "backup_schedule" {
+variable "cron_expression" {
   description = "Backup schedule (cron expression)"
   type        = string
   default     = ""
 }
 
-variable "continuous_backup_enabled" {
+variable "pitr_enabled" {
   description = "Enable continuous backup (PITR)"
   type        = bool
   default     = false
@@ -265,6 +271,18 @@ variable "continuous_backup_enabled" {
 
 variable "continuous_backup_method" {
   description = "Continuous backup method"
+  type        = string
+  default     = ""
+}
+
+variable "incremental_backup_enabled" {
+  description = "Enable incremental backup"
+  type        = bool
+  default     = false
+}
+
+variable "incremental_cron_expression" {
+  description = "Incremental backup schedule (cron expression)"
   type        = string
   default     = ""
 }

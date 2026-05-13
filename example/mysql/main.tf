@@ -72,13 +72,16 @@ resource "kbcloud_cluster" "my_mysql" {
   ]
 
   backup = {
-    backup_repo              = var.backup_repo
-    retention_policy         = var.retention_policy
-    snapshot_volumes         = var.snapshot_volumes
-    auto_backup_enabled      = var.auto_backup_enabled
-    auto_backup_method       = var.auto_backup_method != "" ? var.auto_backup_method : null
-    backup_schedule          = var.backup_schedule != "" ? var.backup_schedule : null
-    continuous_backup_enabled = var.continuous_backup_enabled
-    continuous_backup_method = var.continuous_backup_method != "" ? var.continuous_backup_method : null
+    backup_repo                 = var.backup_repo
+    retention_period            = var.retention_period != "" ? var.retention_period : null
+    retention_policy            = var.retention_policy
+    snapshot_volumes            = var.snapshot_volumes
+    auto_backup                 = var.auto_backup
+    auto_backup_method          = var.auto_backup_method != "" ? var.auto_backup_method : null
+    cron_expression             = var.cron_expression != "" ? var.cron_expression : null
+    pitr_enabled                = var.pitr_enabled
+    continuous_backup_method    = var.continuous_backup_method != "" ? var.continuous_backup_method : null
+    incremental_backup_enabled  = var.incremental_backup_enabled
+    incremental_cron_expression = var.incremental_cron_expression != "" ? var.incremental_cron_expression : null
   }
 }

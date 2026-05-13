@@ -72,16 +72,16 @@ resource "kbcloud_cluster" "my_mssql" {
   ]
 
   backup = {
-    auto_backup                 = var.auto_backup_enabled
+    auto_backup                 = var.auto_backup
     auto_backup_method          = var.auto_backup_method
     backup_repo                 = var.backup_repo
     retention_period            = var.retention_period
     retention_policy            = var.retention_policy
-    cron_expression             = var.backup_schedule
+    cron_expression             = var.cron_expression
     snapshot_volumes            = var.snapshot_volumes
     pitr_enabled                = var.pitr_enabled
     continuous_backup_method    = var.continuous_backup_method
     incremental_backup_enabled  = var.incremental_backup_enabled
-    incremental_cron_expression = var.incremental_backup_schedule
+    incremental_cron_expression = var.incremental_cron_expression
   }
 }

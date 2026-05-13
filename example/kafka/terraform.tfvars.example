@@ -73,6 +73,6 @@ retention_period = "7d"
 retention_policy = "LastOne"
 snapshot_volumes = false
 
-auto_backup_enabled = true
-auto_backup_method  = "topics"
-backup_schedule     = "0 18 * * *"
+auto_backup        = true
+auto_backup_method = "topics"
+cron_expression    = "0 18 * * *"

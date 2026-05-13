@@ -157,17 +157,17 @@ MSSQL supports multiple backup methods:
 
 ### Full Backup
 ```hcl
-auto_backup_enabled = true
+auto_backup     = true
 auto_backup_method = "full"
-backup_schedule = "0 2 * * *"
+cron_expression = "0 2 * * *"
 retention_period = "7d"
 ```
 
 ### Incremental Backup
 ```hcl
-auto_backup_enabled = true
-incremental_backup_enabled = true
-incremental_backup_schedule = "0 */6 * * *"
+auto_backup                 = true
+incremental_backup_enabled  = true
+incremental_cron_expression = "0 */6 * * *"
 ```
 
 ### Transaction Log Backup (Continuous)

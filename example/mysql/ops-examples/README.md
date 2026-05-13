@@ -148,10 +148,10 @@ terraform apply -var-file=terraform.tfvars -var-file=ops-examples/backup-enable-
 Edit the backup tfvars:
 ```bash
 cat > ops-examples/backup-enable-pitr.tfvars << EOF
-auto_backup_enabled       = true
-auto_backup_method        = "xtrabackup"
-continuous_backup_enabled = true
-continuous_backup_method  = "archive-binlog"
+auto_backup              = true
+auto_backup_method       = "xtrabackup"
+pitr_enabled             = true
+continuous_backup_method = "archive-binlog"
 EOF
 
 terraform apply -var-file=terraform.tfvars -var-file=ops-examples/backup-enable-pitr.tfvars
@@ -208,9 +208,9 @@ terraform apply -var-file=terraform.tfvars \
 
 # 3. Enable backups
 terraform apply -var-file=terraform.tfvars \
-  -var='auto_backup_enabled=true' \
+  -var='auto_backup=true' \
   -var='auto_backup_method=xtrabackup' \
-  -var='backup_schedule=0 2 * * *' \
+  -var='cron_expression=0 2 * * *' \
   -var='retention_policy=7d'
 
 # 4. Protect from deletion

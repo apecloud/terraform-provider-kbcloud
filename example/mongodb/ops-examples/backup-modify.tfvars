@@ -8,14 +8,14 @@
 # ============================================================================
 
 # Operation 1: Enable Auto Backup with mongodump method
-auto_backup_enabled = true
+auto_backup        = true
 auto_backup_method = "mongodump"
 
 # ============================================================================
 # Operation 2: Change Backup Schedule
 # Uncomment to change backup time
 # ============================================================================
-# backup_schedule = "0 2 * * *"  # Daily at 2:00 AM
+# cron_expression = "0 2 * * *"  # Daily at 2:00 AM
 
 # ============================================================================
 # Operation 3: Change Retention Policy

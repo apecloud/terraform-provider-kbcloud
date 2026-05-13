@@ -224,9 +224,9 @@ storage_size_gb = 20
 class_code      = "mysql.replication.mysql.1c2g.general"
 
 # Backup Configuration
-auto_backup_enabled = true
-backup_repo         = "my-backuprepo"
-retention_period    = "7d"
+auto_backup     = true
+backup_repo     = "my-backuprepo"
+retention_period = "7d"
 ```
 
 #### Step 3: Plan

@@ -330,7 +330,7 @@ variable "snapshot_volumes" {
   default     = false
 }
 
-variable "auto_backup_enabled" {
+variable "auto_backup" {
   description = "Enable automatic backup"
   type        = bool
   default     = true
@@ -342,8 +342,32 @@ variable "auto_backup_method" {
   default     = "topics"
 }
 
-variable "backup_schedule" {
+variable "cron_expression" {
   description = "Backup schedule (cron expression)"
   type        = string
   default     = "0 18 * * *"
+}
+
+variable "pitr_enabled" {
+  description = "Enable Point-in-Time Recovery"
+  type        = bool
+  default     = false
+}
+
+variable "continuous_backup_method" {
+  description = "Continuous backup method"
+  type        = string
+  default     = ""
+}
+
+variable "incremental_backup_enabled" {
+  description = "Enable incremental backup"
+  type        = bool
+  default     = false
+}
+
+variable "incremental_cron_expression" {
+  description = "Incremental backup schedule (cron expression)"
+  type        = string
+  default     = ""
 }

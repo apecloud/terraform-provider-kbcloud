@@ -59,8 +59,8 @@ retention_policy = "LastOne"
 snapshot_volumes = false
 
 # Advanced Backup Options (disabled by default)
-auto_backup_enabled     = false
-auto_backup_method      = ""
-backup_schedule         = ""
-continuous_backup_enabled = false
+auto_backup        = false
+auto_backup_method = ""
+cron_expression    = ""
+pitr_enabled       = false
 continuous_backup_method  = ""

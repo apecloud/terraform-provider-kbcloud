@@ -134,7 +134,7 @@ retention_policy = "LastOne"
 # Enable auto backup
 auto_backup        = true
 auto_backup_method = "physical"
-backup_schedule    = "0 2 * * *"
+cron_expression    = "0 2 * * *"
 retention_period   = "7d"
 
 # Enable PITR
@@ -345,9 +345,9 @@ Using run.sh:
 Or using tfvars:
 ```hcl
 # In backup-enable.tfvars
-auto_backup_enabled      = true
+auto_backup              = true
 auto_backup_method       = "xtrabackup"
-backup_schedule          = "0 2 * * *"
+cron_expression          = "0 2 * * *"
 retention_period         = "7d"
 pitr_enabled             = true
 continuous_backup_method = "binlog"

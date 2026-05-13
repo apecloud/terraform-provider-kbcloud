@@ -8,15 +8,15 @@
 # ============================================================================
 
 # Operation 1: Enable Automatic Backup
-auto_backup_enabled = true
-auto_backup_method  = "xtrabackup"
-backup_schedule     = "0 2 * * *"  # Daily at 2:00 AM
+auto_backup        = true
+auto_backup_method = "xtrabackup"
+cron_expression    = "0 2 * * *"  # Daily at 2:00 AM
 
 # ============================================================================
 # Operation 2: Enable Continuous Backup (PITR - Point-in-Time Recovery)
 # Uncomment the following lines to enable PITR
 # ============================================================================
-# continuous_backup_enabled = true
+# pitr_enabled = true
 # continuous_backup_method  = "archive-binlog"
 
 # ============================================================================
