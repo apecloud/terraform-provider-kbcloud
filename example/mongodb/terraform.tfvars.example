@@ -1,0 +1,73 @@
+# ============================================================================
+# Default Configuration for MongoDB Cluster (Replication Mode)
+# ============================================================================
+# Copy this file to terraform.tfvars and modify as needed
+# DO NOT commit terraform.tfvars with sensitive information
+
+# API Configuration (use environment variables or separate tfvars for secrets)
+# api_key    = "your_api_key"
+# api_secret = "your_api_secret"
+# admin_api_key    = "your_admin_api_key"
+# admin_api_secret = "your_admin_api_secret"
+
+api_url = "https://kb-cloud-apiserver-endpoint.com/api"
+
+# Cluster Basic Configuration
+cluster_name     = "my-mongodb"
+display_name     = "My MongoDB Cluster"
+org_name         = "my-org"
+environment_name = "prod"
+project          = "kubeblocks-cloud-ns"
+
+# Engine Configuration
+engine       = "mongodb"
+version      = "7.2.12"
+mode         = "replication"  # standalone, replication, cluster, sentinel
+cluster_type = "Normal"
+
+# Network and Availability
+single_zone        = true
+termination_policy = "Delete"
+# network_mode       = ""  # Optional: HeadlessService, HostNetwork (for cluster/sentinel)
+
+# Maintenance Window
+maintenance_start_hour = 18
+maintenance_end_hour   = 22
+maintenance_weekdays   = "1,2,3,4,5,6,7"
+
+# Component Configuration (Primary)
+component_name = "mongodb"
+replicas       = 2
+storage_size_gb = 30
+storage_class  = "apelocal-rawdisk-xfs"
+class_code     = "mongodb.replication.mongodb.2c2g.general"
+
+# I/O Configuration
+read_iops  = 2000
+write_iops = 2000
+
+# Sentinel Component Configuration (only used when mode=sentinel)
+sentinel_component_name = "mongodb-sentinel"
+sentinel_replicas       = 3
+sentinel_storage_size_gb = 20
+sentinel_read_iops      = 500
+sentinel_write_iops     = 500
+sentinel_class_code     = "mongodb.sentinel.mongodb-sentinel.0.5c0.5g.general"
+
+# Extra Configuration (for sentinel mode)
+extra_sentinel = "{}"
+
+# Parameter Template
+param_tpl_name      = "mongodb-default-parameter-template"
+param_tpl_partition = "default"
+
+# Backup Configuration
+auto_backup_enabled       = true
+auto_backup_method        = "datafile"
+backup_repo               = "my-backuprepo"
+retention_period          = "7d"
+retention_policy          = "LastOne"
+backup_schedule           = "0 18 * * *"
+snapshot_volumes          = false
+pitr_enabled              = true
+continuous_backup_method  = "aof"
