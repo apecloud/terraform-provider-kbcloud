@@ -25,7 +25,7 @@ resource "kbcloud_cluster" "my_redis" {
   org_name         = var.org_name
   environment_name = var.environment_name
   engine           = var.engine
-  version          = var.version
+  version          = var.engine_version
   mode             = var.mode
   cluster_type     = var.cluster_type
   project          = var.project

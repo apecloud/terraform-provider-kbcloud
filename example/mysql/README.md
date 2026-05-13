@@ -1,4 +1,4 @@
-yw e# MySQL Terraform Examples - Operations Guide
+# MySQL Terraform Examples - Operations Guide
 
 This directory contains various operational examples for MySQL clusters, demonstrating different lifecycle operations supported by the KBCloud Terraform Provider.
 

@@ -82,7 +82,7 @@ variable "engine" {
   default     = "postgresql"
 }
 
-variable "version" {
+variable "engine_version" {
   description = "Engine version"
   type        = string
   default     = "18.1.0"

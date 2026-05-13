@@ -7,80 +7,80 @@ terraform {
 }
 
 provider "kbcloud" {
-  api_url = "https://kb-cloud-apiserver-endpoint.com/api"
+  api_url = var.api_url
 
-  api_key    = "your_api_key"
-  api_secret = "your_api_secret"
+  api_key    = var.api_key
+  api_secret = var.api_secret
 
-  admin_api_key    = "your_admin_api_key"
-  admin_api_secret = "your_admin_api_secret"
+  admin_api_key    = var.admin_api_key
+  admin_api_secret = var.admin_api_secret
 
   # if you need to skip verify, please set https_skip_verify = true
-  # https_skip_verify = true
+  # https_skip_verify = var.https_skip_verify
 }
 resource "kbcloud_cluster" "my_mssql" {
-  name             = "my-mssql-cluster"
-  display_name     = "my-mssql-cluster"
-  org_name         = "my-org"
-  environment_name = "prod"
-  engine           = "mssql"
-  version          = "2022.19.0"
-  mode             = "cluster"
-  cluster_type     = "Normal"
-  project          = "kubeblocks-cloud-ns"
+  name             = var.cluster_name
+  display_name     = var.display_name
+  org_name         = var.org_name
+  environment_name = var.environment_name
+  engine           = var.engine
+  version          = var.engine_version
+  mode             = var.mode
+  cluster_type     = var.cluster_type
+  project          = var.project
 
-  single_zone        = true
-  termination_policy = "Delete"
+  single_zone        = var.single_zone
+  termination_policy = var.termination_policy
 
   extra = {
     certificate    = {
-      custom = false
+      custom = var.certificate_custom
     }
-    collation      = "Chinese_PRC_CI_AS"
-    defaultDBName  = "db1"
-    productEdition = "Enterprise"
+    collation      = var.collation
+    defaultDBName  = var.default_db_name
+    productEdition = var.product_edition
   }
 
   maintaince_window = {
-    start_hour = 18
-    end_hour   = 22
-    weekdays   = "1,2,3,4,5,6,7"
+    start_hour = var.maintenance_start_hour
+    end_hour   = var.maintenance_end_hour
+    weekdays   = var.maintenance_weekdays
   }
 
   components = [
     {
-      component = "mssql"
-      replicas  = 3
+      component = var.component_name
+      replicas  = var.replicas
       volumes = [
         {
           name    = "data"
-          storage = 20 # GB
+          storage = var.storage_size_gb # GB
           io_limits = {
-            read_iops  = 2000
-            write_iops = 2000
+            read_iops  = var.read_iops
+            write_iops = var.write_iops
           }
           io_reserves = {
-            read_iops  = 2000
-            write_iops = 2000
+            read_iops  = var.read_iops
+            write_iops = var.write_iops
           }
         }
       ]
-      storage_class = "apelocal-rawdisk-xfs"
-      class_code    = "mssql.cluster.mssql.2c4g.general"
+      storage_class = var.storage_class
+      class_code    = var.class_code
     }
   ]
 
   backup = {
-    auto_backup                 = true
-    auto_backup_method          = "full"
-    backup_repo                 = "my-backuprepo"
-    retention_period            = "7d"
-    retention_policy            = "LastOne"
-    cron_expression             = "0 18 * * *"
-    snapshot_volumes            = false
-    pitr_enabled                = true
-    continuous_backup_method    = "transaction-log"
-    incremental_backup_enabled  = false
-    incremental_cron_expression = "0 18 * * *"
+    auto_backup                 = var.auto_backup_enabled
+    auto_backup_method          = var.auto_backup_method
+    backup_repo                 = var.backup_repo
+    retention_period            = var.retention_period
+    retention_policy            = var.retention_policy
+    cron_expression             = var.backup_schedule
+    snapshot_volumes            = var.snapshot_volumes
+    pitr_enabled                = var.pitr_enabled
+    continuous_backup_method    = var.continuous_backup_method
+    incremental_backup_enabled  = var.incremental_backup_enabled
+    incremental_cron_expression = var.incremental_backup_schedule
   }
 }
