@@ -61,6 +61,7 @@ Options:
     -tp, --termination-policy               Termination policy (Delete/DoNotTerminate)
     
     -ab, --auto-backup                      Enable auto backup (true/false)
+    -br, --backup-repo                      Backup repository name
     -bm, --backup-method                    Backup method (aof)
     -bs, --backup-schedule                  Backup schedule (cron expression)
     -rp, --retention-policy                 Retention policy (LastOne/7d/etc)
@@ -136,6 +137,7 @@ terraform_init_and_apply() {
         [[ -n "$REPLICAS" ]] && sed -i '' "s/^replicas.*/replicas = $REPLICAS/" terraform.tfvars
         [[ -n "$STORAGE_SIZE" ]] && sed -i '' "s/^storage_size_gb.*/storage_size_gb = $STORAGE_SIZE/" terraform.tfvars
         [[ -n "$CLASS_CODE" ]] && sed -i '' "s/^class_code.*/class_code = \"$CLASS_CODE\"/" terraform.tfvars
+        [[ -n "$BACKUP_REPO" ]] && sed -i '' "s/^backup_repo.*/backup_repo = \"$BACKUP_REPO\"/" terraform.tfvars
         [[ -n "$READ_IOPS" ]] && sed -i '' "s/^read_iops.*/read_iops = $READ_IOPS/" terraform.tfvars
         [[ -n "$WRITE_IOPS" ]] && sed -i '' "s/^write_iops.*/write_iops = $WRITE_IOPS/" terraform.tfvars
         [[ -n "$TERMINATION_POLICY" ]] && sed -i '' "s/^termination_policy.*/termination_policy = \"$TERMINATION_POLICY\"/" terraform.tfvars
@@ -158,6 +160,7 @@ terraform_init_and_apply() {
         [[ -n "$REPLICAS" ]] && sed -i "s/^replicas.*/replicas = $REPLICAS/" terraform.tfvars
         [[ -n "$STORAGE_SIZE" ]] && sed -i "s/^storage_size_gb.*/storage_size_gb = $STORAGE_SIZE/" terraform.tfvars
         [[ -n "$CLASS_CODE" ]] && sed -i "s/^class_code.*/class_code = \"$CLASS_CODE\"/" terraform.tfvars
+        [[ -n "$BACKUP_REPO" ]] && sed -i "s/^backup_repo.*/backup_repo = \"$BACKUP_REPO\"/" terraform.tfvars
         [[ -n "$READ_IOPS" ]] && sed -i "s/^read_iops.*/read_iops = $READ_IOPS/" terraform.tfvars
         [[ -n "$WRITE_IOPS" ]] && sed -i "s/^write_iops.*/write_iops = $WRITE_IOPS/" terraform.tfvars
         [[ -n "$TERMINATION_POLICY" ]] && sed -i "s/^termination_policy.*/termination_policy = \"$TERMINATION_POLICY\"/" terraform.tfvars
@@ -481,6 +484,7 @@ main() {
     local TERMINATION_POLICY="$DEFAULT_TERMINATION_POLICY"
     local AUTO_BACKUP="false"
     local BACKUP_METHOD=""
+    local BACKUP_REPO=""
     local BACKUP_SCHEDULE=""
     local RETENTION_POLICY=""
     local CUSTOM_PARAMS=""
@@ -602,6 +606,10 @@ parse_command_line() {
                 ;;
             -ab|--auto-backup)
                 AUTO_BACKUP="${2:-}"
+                shift
+                ;;
+            -br|--backup-repo)
+                BACKUP_REPO="${2:-}"
                 shift
                 ;;
             -bm|--backup-method)
