@@ -300,10 +300,10 @@ Uses SCRAM-SHA-512 authentication mechanism.
 All modes support topic backups:
 
 ```hcl
-auto_backup_enabled = true
+auto_backup        = true
 auto_backup_method = "topics"
-backup_schedule = "0 2 * * *"
-retention_period = "7d"
+cron_expression    = "0 2 * * *"
+retention_period   = "7d"
 ```
 
 **Note:** Backups capture topic configurations and metadata, not message data.

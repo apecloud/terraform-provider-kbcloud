@@ -15,14 +15,14 @@ continuous_backup_method = "wal-g-archive"
 # Operation 2: Change Backup Schedule
 # Uncomment to change backup time
 # ============================================================================
-# backup_schedule = "0 2 * * *"  # Daily at 2:00 AM
+# cron_expression = "0 2 * * *"  # Daily at 2:00 AM
 
 # ============================================================================
 # Operation 3: Enable Incremental Backup
 # Uncomment to enable incremental backups
 # ============================================================================
 # incremental_backup_enabled = true
-# incremental_backup_schedule = "0 */6 * * *"  # Every 6 hours
+# incremental_cron_expression = "0 */6 * * *"  # Every 6 hours
 
 # ============================================================================
 # Operation 4: Change Retention Policy

@@ -62,12 +62,12 @@ param_tpl_name      = "redis-default-parameter-template"
 param_tpl_partition = "default"
 
 # Backup Configuration
-auto_backup_enabled       = true
+auto_backup               = true
 auto_backup_method        = "aof"
 backup_repo               = "my-backuprepo"
 retention_period          = "7d"
 retention_policy          = "LastOne"
-backup_schedule           = "0 18 * * *"
+cron_expression           = "0 18 * * *"
 snapshot_volumes          = false
 pitr_enabled              = true
 continuous_backup_method  = "aof"

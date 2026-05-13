@@ -394,11 +394,11 @@ terraform_backup() {
     # Create backup tfvars
     cat > ops-examples/backup-operation.tfvars << EOF
 # Backup Configuration Operation
-auto_backup_enabled = $AUTO_BACKUP
+auto_backup = $AUTO_BACKUP
 EOF
     
     [[ -n "$BACKUP_METHOD" ]] && echo "auto_backup_method = \"$BACKUP_METHOD\"" >> ops-examples/backup-operation.tfvars
-    [[ -n "$BACKUP_SCHEDULE" ]] && echo "backup_schedule = \"$BACKUP_SCHEDULE\"" >> ops-examples/backup-operation.tfvars
+    [[ -n "$BACKUP_SCHEDULE" ]] && echo "cron_expression = \"$BACKUP_SCHEDULE\"" >> ops-examples/backup-operation.tfvars
     [[ -n "$RETENTION_POLICY" ]] && echo "retention_policy = \"$RETENTION_POLICY\"" >> ops-examples/backup-operation.tfvars
     
     echo ""

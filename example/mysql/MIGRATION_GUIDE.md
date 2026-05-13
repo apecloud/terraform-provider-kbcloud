@@ -154,7 +154,7 @@ terraform apply -f termination.tf
 # Combine multiple operations in one command!
 terraform apply -var-file=terraform.tfvars \
   -var='class_code=mysql.replication.mysql.2c4g.general' \
-  -var='auto_backup_enabled=true' \
+  -var='auto_backup=true' \
   -var='termination_policy=DoNotTerminate'
 ```
 

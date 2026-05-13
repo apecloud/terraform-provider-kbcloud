@@ -55,12 +55,12 @@ retention_period = "7d"
 retention_policy = "LastOne"
 snapshot_volumes = false
 
-auto_backup_enabled      = true
-auto_backup_method       = "full"
-backup_schedule          = "0 18 * * *"
+auto_backup        = true
+auto_backup_method = "full"
+cron_expression    = "0 18 * * *"
 
 pitr_enabled             = true
 continuous_backup_method = "transaction-log"
 
 incremental_backup_enabled      = false
-incremental_backup_schedule     = "0 18 * * *"
+incremental_cron_expression     = "0 18 * * *"

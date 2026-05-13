@@ -494,8 +494,8 @@ Create a custom tfvars file for complex changes:
 cat > custom-ops.tfvars << EOF
 class_code = "mssql.cluster.mssql.4c8g.general"
 replicas = 3
-auto_backup_enabled = true
-backup_schedule = "0 2 * * *"
+auto_backup        = true
+cron_expression    = "0 2 * * *"
 EOF
 
 terraform apply -var-file=terraform.tfvars -var-file=custom-ops.tfvars
