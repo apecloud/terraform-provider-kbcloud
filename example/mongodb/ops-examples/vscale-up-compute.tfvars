@@ -1,5 +1,5 @@
 # ============================================================================
-# VScale (Vertical Scaling) Example Configuration for Redis
+# VScale (Vertical Scaling) Example Configuration for MongoDB
 # ============================================================================
 # This file demonstrates how to scale compute and storage resources
 # 
@@ -7,15 +7,15 @@
 #   terraform apply -var-file=terraform.tfvars -var-file=ops-examples/vscale-up-compute.tfvars
 # ============================================================================
 
-# Scale UP Compute: 2 CPU/2GB -> 4 CPU/4GB
-class_code = "redis.replication.redis.4c4g.performance"
+# Scale UP Compute: 1 CPU/1GB -> 2 CPU/2GB
+class_code = "mongodb.replicaset.mongodb.2c2g.general"
 
-# Storage remains the same (30 GB)
-# storage_size_gb = 30
+# Storage remains the same (20 GB)
+# storage_size_gb = 20
 
 # ============================================================================
 # Alternative: Scale UP Both Compute and Storage
 # Uncomment the following lines to scale both
 # ============================================================================
-# class_code = "redis.replication.redis.8c8g.performance"
+# class_code = "mongodb.replicaset.mongodb.4c4g.performance"
 # storage_size_gb = 100

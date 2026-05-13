@@ -1,8 +1,8 @@
-# MongoDB Terraform Test Script Guide
+# Kafka Terraform Test Script Guide
 
 ## 📖 Overview
 
-The `run.sh` script provides a command-line interface for managing MongoDB clusters on KubeBlocks Cloud using Terraform. It simplifies cluster operations by allowing you to configure and execute Terraform commands through simple command-line parameters.
+The `run.sh` script provides a command-line interface for managing Kafka clusters on KubeBlocks Cloud using Terraform. It simplifies cluster operations by allowing you to configure and execute Terraform commands through simple command-line parameters.
 
 ---
 
@@ -23,7 +23,7 @@ chmod +x run.sh
 # View help
 ./run.sh --help
 
-# Create a default MongoDB cluster
+# Create a default Kafka cluster
 ./run.sh -t 1
 
 # Destroy the cluster
@@ -55,10 +55,10 @@ chmod +x run.sh
 
 | Parameter | Short | Long | Default | Description |
 |-----------|-------|------|---------|-------------|
-| Cluster Name | `-cn` | `--cluster-name` | `my-pg` | Unique cluster identifier |
-| Engine | `-e` | `--engine` | `pg` | Database engine type |
-| Version | `-v` | `--version` | `8.0.44` | Engine version |
-| Mode | `-m` | `--mode` | `replication` | Deployment mode (standalone/replication) |
+| Cluster Name | `-cn` | `--cluster-name` | `my-kafka` | Unique cluster identifier |
+| Engine | `-e` | `--engine` | `kafka` | Database engine type |
+| Version | `-v` | `--version` | `3.9.0` | Engine version |
+| Mode | `-m` | `--mode` | `combined` | Deployment mode (combined/separated) |
 | Environment | `-env` | `--environment` | `prod` | Environment name (dev/staging/prod) |
 
 ### Resource Configuration
@@ -67,7 +67,7 @@ chmod +x run.sh
 |-----------|-------|------|---------|-------------|
 | Replicas | `-r` | `--replicas` | `2` | Number of replicas |
 | Storage Size | `-s` | `--storage-size` | `20` | Storage size in GB |
-| Class Code | `-cc` | `--class-code` | `pg.replication.pg.1c2g.general` | Instance specification |
+| Class Code | `-cc` | `--class-code` | `kafka.combined.kafka-combine.1c1g.general` | Instance specification |
 
 ### Advanced Options
 
@@ -75,7 +75,7 @@ chmod +x run.sh
 |-----------|-------|------|---------|-------------|
 | Termination Policy | `-tp` | `--termination-policy` | `Delete` | Delete or DoNotTerminate |
 | Auto Backup | `-ab` | `--auto-backup` | `false` | Enable automatic backup |
-| Backup Method | `-bm` | `--backup-method` | - | Backup method (xtrabackup) |
+| Backup Method | `-bm` | `--backup-method` | - | Backup method (topics) |
 | Backup Schedule | `-bs` | `--backup-schedule` | - | Cron expression for backup schedule |
 | Retention Policy | `-rp` | `--retention-policy` | `LastOne` | Backup retention policy |
 | Custom Params | `-cp` | `--custom-params` | - | Custom parameters (JSON format) |
@@ -101,18 +101,18 @@ chmod +x run.sh
 
 ```bash
 ./run.sh -t 1 \
-    -cn "pg-dev" \
+    -cn "kafka-dev" \
     -env "dev" \
     -r 1 \
     -s 10 \
-    -cc "pg.replication.pg.1c2g.general"
+    -cc "kafka.combined.kafka-combine.1c1g.general"
 ```
 
 **What this does:**
-- Creates a single-replica MongoDB cluster
-- 10GB storage
+- Creates a single-replica Kafka cluster (combined mode)
+- 10GB storage for data and metadata
 - Minimal resources for development
-- Named "pg-dev"
+- Named "kafka-dev"
 
 ---
 
@@ -120,16 +120,16 @@ chmod +x run.sh
 
 ```bash
 ./run.sh -t 1 \
-    -cn "pg-prod" \
+    -cn "kafka-prod" \
     -env "prod" \
     -r 3 \
     -s 100 \
-    -cc "pg.replication.pg.4c8g.performance" \
+    -cc "kafka.separated.kafka-broker.4c8g.performance" \
     -tp "DoNotTerminate"
 ```
 
 **What this does:**
-- Creates a 3-replica high-availability cluster
+- Creates a 3-replica high-availability cluster (separated mode)
 - 100GB storage
 - Performance-optimized instance (4 CPU, 8GB RAM)
 - Protected from accidental deletion
@@ -140,11 +140,11 @@ chmod +x run.sh
 
 ```bash
 ./run.sh -t 4 \
-    -cc "pg.replication.pg.8c16g.performance"
+    -cc "kafka.combined.kafka-combine.2c4g.general"
 ```
 
 **What this does:**
-- Scales existing cluster to 8 CPU, 16GB RAM
+- Scales existing cluster to 2 CPU, 4GB RAM
 - Triggers a vertical scaling operation
 - May cause brief downtime during scaling
 
@@ -169,30 +169,30 @@ chmod +x run.sh
 ```bash
 ./run.sh -t 7 \
     -ab true \
-    -bm "xtrabackup" \
+    -bm "topics" \
     -bs "0 2 * * *" \
     -rp "7d"
 ```
 
 **What this does:**
-- Enables daily backups at 2:00 AM
-- Uses xtrabackup method for hot backups
+- Enables daily topic backups at 2:00 AM
+- Uses topics backup method for Kafka
 - Retains backups for 7 days
 
 ---
 
-### 6. Modify Database Parameters
+### 6. Modify Kafka Parameters
 
 ```bash
 ./run.sh -t 6 \
-    -cp '{"max_connections": "500", "innodb_buffer_pool_size": "2G"}'
+    -cp '{"sasl_enable": "true", "num.partitions": "6"}'
 ```
 
 **What this does:**
-- Updates MongoDB configuration parameters
-- Changes max connections to 500
-- Sets InnoDB buffer pool to 2GB
-- Applies changes without restart (if possible)
+- Updates Kafka configuration parameters
+- Enables SASL authentication
+- Sets default number of partitions to 6
+- Applies changes dynamically (if supported)
 
 ---
 
@@ -248,7 +248,7 @@ chmod +x run.sh
 
 # Step 2: Scale up after load increases
 ./run.sh -t 4 \
-    -cc "pg.replication.pg.2c4g.general"
+    -cc "kafka.combined.kafka-combine.2c4g.general"
 
 # Step 3: Add more replicas for read scaling
 ./run.sh -t 5 \
@@ -270,17 +270,17 @@ chmod +x run.sh
 
 ```bash
 # Test small configuration
-./run.sh -t 1 -cn "test-small" -r 1 -s 10 -cc "pg.replication.pg.1c2g.general"
+./run.sh -t 1 -cn "test-small" -r 1 -s 10 -cc "kafka.combined.kafka-combine.1c1g.general"
 # ... run tests ...
 ./run.sh -t 2
 
 # Test medium configuration
-./run.sh -t 1 -cn "test-medium" -r 2 -s 50 -cc "pg.replication.pg.2c4g.general"
+./run.sh -t 1 -cn "test-medium" -r 3 -s 50 -cc "kafka.separated.kafka-broker.2c4g.general"
 # ... run tests ...
 ./run.sh -t 2
 
 # Test large configuration
-./run.sh -t 1 -cn "test-large" -r 3 -s 100 -cc "pg.replication.pg.4c8g.performance"
+./run.sh -t 1 -cn "test-large" -r 3 -s 100 -cc "kafka.separated.kafka-broker.4c8g.performance"
 # ... run tests ...
 ./run.sh -t 2
 ```
@@ -298,7 +298,7 @@ set -e
 CLUSTER_NAME="app-${BUILD_NUMBER}"
 ENVIRONMENT="${DEPLOY_ENV:-staging}"
 
-echo "Deploying MongoDB cluster: $CLUSTER_NAME"
+echo "Deploying Kafka cluster: $CLUSTER_NAME"
 
 # Create cluster
 ./run.sh -t 1 \
@@ -338,11 +338,11 @@ You can also edit `terraform.tfvars` directly:
 
 ```hcl
 # terraform.tfvars
-cluster_name     = "my-pg"
+cluster_name     = "my-kafka"
 environment_name = "prod"
 replicas         = 3
 storage_size_gb  = 100
-class_code       = "pg.replication.pg.4c8g.performance"
+class_code       = "kafka.separated.kafka-broker.4c8g.performance"
 
 # API credentials (recommended to use environment variables)
 api_key          = "your_api_key"
@@ -492,7 +492,7 @@ Create a custom tfvars file for complex changes:
 
 ```bash
 cat > custom-ops.tfvars << EOF
-class_code = "pg.replication.pg.4c8g.performance"
+class_code = "kafka.separated.kafka-broker.4c8g.performance"
 replicas = 3
 auto_backup_enabled = true
 backup_schedule = "0 2 * * *"
@@ -505,9 +505,9 @@ terraform apply -var-file=terraform.tfvars -var-file=custom-ops.tfvars
 
 ```bash
 # Save common commands as shell functions
-alias pg-create='./run.sh -t 1 -cn "my-db" -r 2 -s 50'
-alias pg-scale='./run.sh -t 4 -cc "pg.replication.pg.2c4g.general"'
-alias pg-destroy='./run.sh -t 2'
+alias kafka-create='./run.sh -t 1 -cn "my-kafka" -r 3 -s 50'
+alias kafka-scale='./run.sh -t 4 -cc "kafka.combined.kafka-combine.2c4g.general"'
+alias kafka-destroy='./run.sh -t 2'
 ```
 
 ### 4. Backup terraform.tfvars
@@ -520,7 +520,7 @@ cp terraform.tfvars terraform.tfvars.backup.$(date +%Y%m%d)
 
 ## 📚 Additional Resources
 
-- [MongoDB Example README](README.md)
+- [Kafka Example README](README.md)
 - [Operations Examples](ops-examples/README.md)
 - [Migration Guide](MIGRATION_GUIDE.md)
 - [KubeBlocks Documentation](https://kubeblocks.io/docs)

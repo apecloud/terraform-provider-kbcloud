@@ -71,20 +71,20 @@ Options:
     -admin-api-secret                       Admin API secret
 
 Examples:
-    # Create a default MySQL cluster
+    # Create a default PostgreSQL cluster
     ./run.sh -t 1
     
     # Create cluster with custom configuration
     ./run.sh -t 1 \\
-        -cn "mysql-prod" \\
+        -cn "pg-prod" \\
         -env "prod" \\
         -r 3 \\
         -s 100 \\
-        -cc "mysql.replication.mysql.4c8g.performance"
+        -cc "postgresql.replication.postgresql.4c8g.performance"
     
     # Scale up compute resources
     ./run.sh -t 4 \\
-        -cc "mysql.replication.mysql.2c4g.general"
+        -cc "postgresql.replication.postgresql.2c4g.general"
     
     # Scale out replicas
     ./run.sh -t 5 \\
@@ -177,12 +177,12 @@ terraform_init_and_apply() {
     echo "=========================================="
     echo ""
     
-    echo "Running: terraform plan -out mysql_plan"
-    terraform plan -out=mysql_plan -var-file=terraform.tfvars
+    echo "Running: terraform plan -out pg_plan"
+    terraform plan -out=pg_plan -var-file=terraform.tfvars
     
     echo ""
-    echo "Running: terraform apply mysql_plan"
-    terraform apply mysql_plan
+    echo "Running: terraform apply pg_plan"
+    terraform apply pg_plan
     
     echo ""
     echo "=========================================="

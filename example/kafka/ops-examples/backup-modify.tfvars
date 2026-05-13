@@ -1,5 +1,5 @@
 # ============================================================================
-# Backup Operations Example Configuration for Redis
+# Backup Operations Example Configuration for Kafka
 # ============================================================================
 # This file demonstrates various backup configuration options
 # 
@@ -7,9 +7,9 @@
 #   terraform apply -var-file=terraform.tfvars -var-file=ops-examples/backup-modify.tfvars
 # ============================================================================
 
-# Operation 1: Enable PITR (Point-in-Time Recovery)
-pitr_enabled = true
-continuous_backup_method = "aof"
+# Operation 1: Enable Auto Backup with topics method
+auto_backup_enabled = true
+auto_backup_method = "topics"
 
 # ============================================================================
 # Operation 2: Change Backup Schedule

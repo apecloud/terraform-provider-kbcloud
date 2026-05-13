@@ -105,7 +105,7 @@ You can combine multiple operations in a single apply:
 ```bash
 # Scale up AND add replicas at the same time
 cat > combined-ops.tfvars << EOF
-class_code = "postgresql.replication.postgresql.2c4g.general"
+class_code = "redis.replication.redis.2c2g.general"
 replicas = 3
 EOF
 

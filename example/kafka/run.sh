@@ -8,14 +8,14 @@ set -o pipefail
 # ============================================================================
 # Default Configuration
 # ============================================================================
-DEFAULT_CLUSTER_NAME="my-mongodb"
-DEFAULT_ENGINE="mongodb"
-DEFAULT_VERSION="6.0.27"
-DEFAULT_MODE="replicaset"
+DEFAULT_CLUSTER_NAME="my-kafka"
+DEFAULT_ENGINE="kafka"
+DEFAULT_VERSION="3.9.0"
+DEFAULT_MODE="combined"
 DEFAULT_ENVIRONMENT="prod"
 DEFAULT_REPLICAS=3
 DEFAULT_STORAGE_SIZE=20
-DEFAULT_CLASS_CODE="mongodb.replicaset.mongodb.1c1g.general"
+DEFAULT_CLASS_CODE="kafka.combined.kafka-combine.1c1g.general"
 DEFAULT_READ_IOPS=1000
 DEFAULT_WRITE_IOPS=1000
 DEFAULT_TERMINATION_POLICY="Delete"
@@ -27,7 +27,7 @@ show_help() {
 cat << EOF
 Usage: $(basename "$0") <options>
 
-KubeBlocks MongoDB Cluster Terraform Test Script
+KubeBlocks Kafka Cluster Terraform Test Script
 
 Options:
     -h, --help                              Display help message
@@ -71,20 +71,20 @@ Options:
     -admin-api-secret                       Admin API secret
 
 Examples:
-    # Create a default MySQL cluster
+    # Create a default Kafka cluster
     ./run.sh -t 1
     
     # Create cluster with custom configuration
     ./run.sh -t 1 \\
-        -cn "mysql-prod" \\
+        -cn "kafka-prod" \\
         -env "prod" \\
         -r 3 \\
         -s 100 \\
-        -cc "mysql.replication.mysql.4c8g.performance"
+        -cc "kafka.separated.kafka-broker.4c8g.performance"
     
     # Scale up compute resources
     ./run.sh -t 4 \\
-        -cc "mysql.replication.mysql.2c4g.general"
+        -cc "kafka.combined.kafka-combine.2c4g.general"
     
     # Scale out replicas
     ./run.sh -t 5 \\
@@ -93,7 +93,7 @@ Examples:
     # Enable automatic backup
     ./run.sh -t 7 \\
         -ab true \\
-        -bm "xtrabackup" \\
+        -bm "topics" \\
         -bs "0 2 * * *"
     
     # Destroy cluster
@@ -177,12 +177,12 @@ terraform_init_and_apply() {
     echo "=========================================="
     echo ""
     
-    echo "Running: terraform plan -out mysql_plan"
-    terraform plan -out=mysql_plan -var-file=terraform.tfvars
+    echo "Running: terraform plan -out kafka_plan"
+    terraform plan -out=kafka_plan -var-file=terraform.tfvars
     
     echo ""
-    echo "Running: terraform apply mysql_plan"
-    terraform apply mysql_plan
+    echo "Running: terraform apply kafka_plan"
+    terraform apply kafka_plan
     
     echo ""
     echo "=========================================="

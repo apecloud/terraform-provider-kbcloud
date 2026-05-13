@@ -1,79 +1,51 @@
-# MongoDB Multi-Mode Configuration Guide
+# MSSQL Cluster Mode Configuration Guide
 
 ## Overview
 
-MongoDB supports multiple deployment modes. The refactored configuration uses a **single flexible cluster definition** that can be configured for different modes through variables.
+MSSQL supports **Cluster mode** using Always On availability groups for high availability. This guide explains the configuration and deployment options.
 
 ---
 
-## Supported Modes
+## Supported Mode: Cluster Mode
 
-### 1. Standalone Mode
-Single-node MongoDB instance (for development/testing).
+### Cluster Mode (Always On Availability Groups)
 
-```hcl
-mode = "standalone"
-replicas = 1
-```
-
-### 2. Replication Mode (Default)
-Primary-replica architecture for high availability.
-
-```hcl
-mode = "replication"
-replicas = 2  # 1 primary + 1 replica
-class_code = "mongodb.replication.mongodb.2c2g.general"
-```
-
-### 3. Cluster Mode
-Sharded cluster for horizontal scaling and large datasets.
+MSSQL uses Windows Server Failover Clustering (WSFC) with Always On availability groups to provide high availability.
 
 ```hcl
 mode = "cluster"
-comp_num = 3  # Number of shards
-replicas = 2  # Replicas per shard
-network_mode = "HeadlessService"
-class_code = "mongodb.cluster.mongodb-cluster.2c1g.general"
-component_name = "mongodb-cluster"
-param_tpl_name = "mongodb-cluster-default-parameter-template"
+replicas = 3
+class_code = "mssql.cluster.mssql.2c4g.general"
+product_edition = "Enterprise"  # or "Developer"
 ```
 
-**Total nodes:** `comp_num * replicas = 3 * 2 = 6 nodes`
+**Components:**
+- mssql: SQL Server instances with Always On enabled
 
-### 4. Sentinel Mode
-Sentinel-based high availability with automatic failover.
+**Features:**
+- Automatic failover
+- Synchronous/asynchronous replication
+- Read-only secondary replicas
+- Transparent client redirection
 
-```hcl
-mode = "sentinel"
-replicas = 2  # MongoDB data nodes
-network_mode = "HostNetwork"
-extra_sentinel = "{}"
-
-# Sentinel component configuration
-sentinel_component_name = "mongodb-sentinel"
-sentinel_replicas = 3
-sentinel_class_code = "mongodb.sentinel.mongodb-sentinel.0.5c0.5g.general"
-```
-
-**Total components:** 
-- 1 MongoDB component (2 replicas)
-- 1 Sentinel component (3 replicas)
+**Best for:** Production environments requiring high availability
 
 ---
 
 ## Configuration Examples
 
-### Example 1: Simple Replication (Production Ready)
+### Example 1: Development Cluster (Developer Edition)
 
 **File:** `terraform.tfvars`
 
 ```hcl
-cluster_name     = "mongodb-prod"
-mode             = "replication"
-replicas         = 3
-storage_size_gb  = 50
-class_code       = "mongodb.replication.mongodb.4c4g.performance"
-termination_policy = "DoNotTerminate"
+cluster_name     = "mssql-dev"
+mode             = "cluster"
+replicas         = 2
+storage_size_gb  = 20
+class_code       = "mssql.cluster.mssql.2c4g.general"
+product_edition  = "Developer"
+termination_policy = "Delete"
 ```
 
 **Deploy:**
@@ -83,65 +55,28 @@ termination_policy = "DoNotTerminate"
 
 ---
 
-### Example 2: Cluster Mode (Large Dataset)
+### Example 2: Production Cluster (Enterprise Edition)
 
-**File:** `terraform-cluster.tfvars`
+**File:** `terraform.tfvars`
 
 ```hcl
-cluster_name     = "mongodb-cluster-prod"
+cluster_name     = "mssql-prod"
 mode             = "cluster"
-comp_num         = 6        # 6 shards
-replicas         = 2        # 2 replicas per shard
-network_mode     = "HeadlessService"
+replicas         = 3
 storage_size_gb  = 100
-class_code       = "mongodb.cluster.mongodb-cluster.4c2g.performance"
-component_name   = "mongodb-cluster"
-param_tpl_name   = "mongodb-cluster-default-parameter-template"
+class_code       = "mssql.cluster.mssql.4c8g.performance"
+product_edition  = "Enterprise"
+termination_policy = "DoNotTerminate"
+collation        = "Chinese_PRC_CI_AS"
+default_db_name  = "mydb"
 ```
 
 **Deploy:**
 ```bash
 ./run.sh -t 1 \
-    -cn "mongodb-cluster-prod" \
-    -m "cluster" \
-    -r 2
-```
-
-Then manually edit `terraform.tfvars` to add:
-```hcl
-comp_num = 6
-network_mode = "HeadlessService"
-component_name = "mongodb-cluster"
-```
-
----
-
-### Example 3: Sentinel Mode (High Availability)
-
-**File:** `terraform-sentinel.tfvars`
-
-```hcl
-cluster_name     = "mongodb-sentinel-prod"
-mode             = "sentinel"
-replicas         = 2
-network_mode     = "HostNetwork"
-extra_sentinel   = "{}"
-
-# Primary MongoDB component
-component_name   = "mongodb"
-class_code       = "mongodb.sentinel.mongodb.2c1g.general"
-
-# Sentinel component
-sentinel_replicas = 3
-sentinel_class_code = "mongodb.sentinel.mongodb-sentinel.0.5c0.5g.general"
-```
-
-**Deploy:**
-```bash
-./run.sh -t 1 \
-    -cn "mongodb-sentinel-prod" \
-    -m "sentinel" \
-    -r 2
+    -cn "mssql-prod" \
+    -r 3 \
+    -s 100
 ```
 
 ---
@@ -168,119 +103,80 @@ sentinel_class_code = "mongodb.sentinel.mongodb-sentinel.0.5c0.5g.general"
 
 ## Mode-Specific Considerations
 
-### Replication Mode
-- ✅ Simple setup
-- ✅ Automatic failover
-- ✅ Read scaling with replicas
-- ❌ Limited by single-node memory
+### Cluster Mode (Always On)
+- ✅ Automatic failover with Always On availability groups
+- ✅ Synchronous commit for zero data loss
+- ✅ Read-only routing to secondary replicas
+- ✅ Transparent client redirection
+- ❌ Requires Enterprise Edition for full features
+- ❌ Minimum 3 replicas recommended for quorum
 
-**Best for:** Medium-sized datasets, simple HA requirements
-
----
-
-### Cluster Mode
-- ✅ Horizontal scaling (sharding)
-- ✅ Very large datasets
-- ✅ High throughput
-- ❌ More complex management
-- ❌ Requires `comp_num` configuration
-
-**Best for:** Large datasets (>100GB), high throughput requirements
+**Best for:** Production environments requiring high availability and disaster recovery
 
 **Key Parameters:**
-- `comp_num`: Number of shards (affects total capacity)
-- `network_mode`: Must be "HeadlessService"
-- `component_name`: Should be "mongodb-cluster"
-
----
-
-### Sentinel Mode
-- ✅ Automatic failover
-- ✅ Client-side discovery
-- ✅ Flexible topology
-- ❌ Requires separate sentinel nodes
-- ❌ More resource overhead
-
-**Best for:** Complex HA requirements, existing MongoDB clients using Sentinel
-
-**Key Parameters:**
-- `network_mode`: Usually "HostNetwork"
-- `extra_sentinel`: Sentinel configuration (JSON)
-- `sentinel_replicas`: Typically 3 or 5 (odd number)
+- `product_edition`: "Enterprise" or "Developer"
+- `collation`: Database collation (e.g., "Chinese_PRC_CI_AS")
+- `replicas`: Typically 3 for production (odd number for quorum)
 
 ---
 
 ## Scaling Operations
 
-### VScale (All Modes)
+### VScale (Vertical Scaling)
 
 Scale compute/storage for all nodes:
 
 ```bash
 ./run.sh -t 4 \
-    -cc "mongodb.replication.mongodb.4c4g.performance" \
+    -cc "mssql.cluster.mssql.4c8g.performance" \
     -s 100
 ```
 
-**Effect:** All nodes (primary, replicas, sentinels) are scaled
+**Effect:** All SQL Server instances are scaled to new specifications
 
 ---
 
-### HScale (Replication/Sentinel Modes)
+### HScale (Horizontal Scaling)
 
-Add more replicas:
+Add more replicas for better read performance:
 
 ```bash
 ./run.sh -t 5 \
     -r 5
 ```
 
-**Effect:** Increases replica count for better read scaling
+**Effect:** Increases replica count for better read scaling and fault tolerance
 
----
-
-### HScale (Cluster Mode)
-
-For cluster mode, you typically scale by adding shards:
-
-```hcl
-# In terraform.tfvars
-comp_num = 9  # Increase from 6 to 9 shards
-```
-
-Then apply:
-```bash
-terraform apply -var-file=terraform.tfvars
-```
-
-**Note:** This triggers a resharding operation which may take time.
+**Note:** MSSQL Always On supports up to 8 secondary replicas
 
 ---
 
 ## Backup Configuration
 
-All modes support backup with slight differences:
+MSSQL supports multiple backup methods:
 
-### Replication/Standalone
+### Full Backup
 ```hcl
 auto_backup_enabled = true
+auto_backup_method = "full"
+backup_schedule = "0 2 * * *"
+retention_period = "7d"
+```
+
+### Incremental Backup
+```hcl
+auto_backup_enabled = true
+incremental_backup_enabled = true
+incremental_backup_schedule = "0 */6 * * *"
+```
+
+### Transaction Log Backup (Continuous)
+```hcl
 pitr_enabled = true
-continuous_backup_method = "aof"
+continuous_backup_method = "transaction-log"
 ```
 
-### Cluster Mode
-```hcl
-auto_backup_enabled = true
-pitr_enabled = false  # PITR not supported in cluster mode
-continuous_backup_method = "aof"
-```
-
-### Sentinel Mode
-```hcl
-auto_backup_enabled = true
-pitr_enabled = false  # PITR usually disabled for sentinel
-continuous_backup_method = "aof"
-```
+**Best Practice:** Combine full + incremental + transaction log for comprehensive backup strategy
 
 ---
 
@@ -296,133 +192,95 @@ kubectl get clusters -n kubeblocks-cloud-ns
 kubectl get pods -l app.kubernetes.io/instance=<cluster-name> -n kubeblocks-cloud-ns
 ```
 
-### Mode-Specific Checks
+### Check Always On Status
 
-**Replication:**
 ```bash
-# Check replication status
-kubectl exec -it <primary-pod> -n <namespace> -- mongodb-cli info replication
-```
+# Check primary/secondary roles
+kubectl exec -it <mssql-pod> -n <namespace> -- sqlcmd -Q "SELECT role_desc FROM sys.dm_hadr_availability_replica_states"
 
-**Cluster:**
-```bash
-# Check cluster info
-kubectl exec -it <pod> -n <namespace> -- mongodb-cli cluster info
-kubectl exec -it <pod> -n <namespace> -- mongodb-cli cluster nodes
-```
-
-**Sentinel:**
-```bash
-# Check sentinel status
-kubectl exec -it <sentinel-pod> -n <namespace> -- mongodb-cli -p 26379 info sentinel
+# Check availability group health
+kubectl exec -it <mssql-pod> -n <namespace> -- sqlcmd -Q "SELECT * FROM sys.dm_hadr_availability_group_states"
 ```
 
 ---
 
 ## Troubleshooting
 
-### Issue: Cluster mode fails to initialize
+### Issue: Cluster fails to initialize
 
 **Check:**
-1. Verify `comp_num` is set correctly
-2. Ensure `network_mode = "HeadlessService"`
-3. Check if `component_name = "mongodb-cluster"`
-4. Verify sufficient resources for all shards
+1. Verify sufficient resources for all replicas
+2. Ensure product edition is compatible (Enterprise/Developer)
+3. Check pod logs for errors
 
 ```bash
 kubectl describe cluster <cluster-name> -n kubeblocks-cloud-ns
+kubectl logs -l app.kubernetes.io/component=mssql -n <namespace>
 ```
 
 ---
 
-### Issue: Sentinel mode has connectivity problems
+### Issue: Always On availability group not syncing
 
 **Check:**
-1. Verify `network_mode = "HostNetwork"`
-2. Ensure `extra_sentinel` is properly configured
-3. Check sentinel pod logs
+1. Verify network connectivity between replicas
+2. Check if quorum is maintained (majority of replicas online)
+3. Review SQL Server error logs
 
 ```bash
-kubectl logs -l app.kubernetes.io/component=mongodb-sentinel -n kubeblocks-cloud-ns
+kubectl exec -it <mssql-pod> -n <namespace> -- sqlcmd -Q "SELECT * FROM sys.dm_hadr_database_replica_states"
 ```
 
 ---
 
-### Issue: Insufficient resources for cluster mode
+### Issue: Insufficient resources
 
 **Solution:**
-Reduce `comp_num` or use smaller instance types:
+Use smaller instance types or reduce replicas:
 
 ```hcl
-comp_num = 3  # Reduce from 6 to 3
-class_code = "mongodb.cluster.mongodb-cluster.1c1g.general"  # Smaller instances
+replicas = 2  # Reduce from 3 to 2
+class_code = "mssql.cluster.mssql.2c4g.general"  # Smaller instances
 ```
 
 ---
 
 ## Best Practices
 
-### 1. Choose the Right Mode
+### 1. Choose the Right Edition
 
-- **Development:** Standalone or small replication
-- **Production (medium):** Replication with 3+ replicas
-- **Production (large):** Cluster mode with appropriate shards
-- **Legacy compatibility:** Sentinel mode
+- **Development/Testing:** Developer Edition (free, no production use)
+- **Production:** Enterprise Edition (full features, licensing required)
 
 ### 2. Resource Planning
 
-**Replication Mode:**
-- Memory: Total dataset size + 20% overhead
-- CPU: Based on QPS requirements
-- Storage: Dataset size + growth projection
-
 **Cluster Mode:**
-- Per-shard memory: Total dataset / comp_num
-- Total nodes: comp_num × replicas
-- Plan for resharding overhead
-
-**Sentinel Mode:**
-- Data nodes: Same as replication
-- Sentinel nodes: Minimal resources (0.5c0.5g typical)
-- Odd number of sentinels (3, 5, 7)
+- Memory: At least 4GB per instance (more for production)
+- CPU: Based on query complexity and concurrency
+- Storage: Database size + growth projection + tempdb space
+- Replicas: Minimum 3 for production (odd number for quorum)
 
 ### 3. Backup Strategy
 
 - Enable auto backup for all production clusters
+- Use combination of full + incremental + transaction log backups
 - Test restore procedures regularly
 - Monitor backup success/failure
-- Configure appropriate retention period
+- Configure appropriate retention period (7-30 days typical)
 
 ### 4. Monitoring
 
-- Set up alerts for memory usage (>80%)
-- Monitor replication lag
-- Track hit rate (should be >90% for cache)
+- Set up alerts for CPU/memory usage (>80%)
+- Monitor Always On synchronization state
+- Track database size growth
 - Watch for connection pool exhaustion
-
----
-
-## Migration Paths
-
-### From Standalone to Replication
-
-1. Create new replication cluster
-2. Migrate data using MongoDB migration tools
-3. Update application configuration
-4. Decommission standalone cluster
-
-### From Replication to Cluster
-
-1. Create new cluster mode deployment
-2. Use MongoDB Cluster migration tools
-3. Test thoroughly
-4. Switch traffic gradually
+- Monitor transaction log size
 
 ---
 
 ## Additional Resources
 
-- [MongoDB Documentation](https://mongodb.io/documentation)
-- [KubeBlocks MongoDB Guide](https://kubeblocks.io/docs)
+- [Microsoft SQL Server Documentation](https://docs.microsoft.com/sql)
+- [KubeBlocks MSSQL Guide](https://kubeblocks.io/docs)
 - [RUN_SCRIPT_GUIDE.md](RUN_SCRIPT_GUIDE.md)
 - [ops-examples/README.md](ops-examples/README.md)

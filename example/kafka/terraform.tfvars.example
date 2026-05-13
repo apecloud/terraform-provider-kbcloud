@@ -1,0 +1,78 @@
+# ============================================================================
+# Default Configuration for Kafka Cluster
+# ============================================================================
+# Copy this file to terraform.tfvars and modify as needed
+# DO NOT commit terraform.tfvars with sensitive information
+
+# API Configuration (use environment variables or separate tfvars for secrets)
+# api_key    = "your_api_key"
+# api_secret = "your_api_secret"
+# admin_api_key    = "your_admin_api_key"
+# admin_api_secret = "your_admin_api_secret"
+
+api_url = "https://kb-cloud-apiserver-endpoint.com/api"
+
+# Cluster Basic Configuration
+cluster_name     = "my-kafka"
+display_name     = "My Kafka Cluster"
+org_name         = "my-org"
+environment_name = "prod"
+project          = "kubeblocks-cloud-ns"
+
+# Engine Configuration
+engine       = "kafka"
+engine_version = "3.9.0"
+mode         = "combined"
+cluster_type = "Normal"
+
+# Network and Availability
+single_zone        = true
+termination_policy = "Delete"
+network_mode       = "HeadlessService"
+
+# SASL Configuration
+sasl_enabled = true
+
+# Zookeeper Reference (for withZookeeper mode only)
+zookeeper_cluster_ref = ""
+
+# Maintenance Window
+maintenance_start_hour = 18
+maintenance_end_hour   = 22
+maintenance_weekdays   = "1,2,3,4,5,6,7"
+
+# Combined Mode Configuration (when mode = "combined")
+combined_component_name      = "kafka-combine"
+combined_replicas            = 1
+combined_data_storage_gb     = 20
+combined_metadata_storage_gb = 5
+combined_read_iops           = 1000
+combined_write_iops          = 1000
+combined_class_code          = "kafka.combined.kafka-combine.1c1g.general"
+
+# Separated Mode Configuration (when mode = "separated")
+# Broker Configuration
+broker_component_name = "kafka-broker"
+broker_replicas       = 3
+broker_data_storage_gb = 20
+broker_read_iops      = 1000
+broker_write_iops     = 1000
+broker_class_code     = "kafka.separated.kafka-broker.1c1g.general"
+
+# Controller Configuration
+controller_component_name    = "kafka-controller"
+controller_replicas          = 3
+controller_metadata_storage_gb = 5
+controller_read_iops         = 1000
+controller_write_iops        = 1000
+controller_class_code        = "kafka.separated.kafka-controller.1c1g.general"
+
+# Backup Configuration
+backup_repo      = "my-backuprepo"
+retention_period = "7d"
+retention_policy = "LastOne"
+snapshot_volumes = false
+
+auto_backup_enabled = true
+auto_backup_method  = "topics"
+backup_schedule     = "0 18 * * *"

@@ -1,18 +1,17 @@
 # ============================================================================
-# Reconfigure (Parameter Modification) Example Configuration for Redis
+# Reconfigure (Parameter Modification) Example Configuration for MongoDB
 # ============================================================================
-# This file demonstrates how to modify database parameters
+# This file demonstrates how to modify MongoDB parameters
 # 
 # Usage:
 #   terraform apply -var-file=terraform.tfvars -var-file=ops-examples/reconfigure-params.tfvars
 # ============================================================================
 
 # Method 1: Change parameter template
-param_tpl_name = "redis-high-performance-template"
+param_tpl_name = "mongodb-default-parameter-template"
 
 # Method 2: Modify custom parameters (if supported)
 # custom_params = {
-#   "maxmemory" = "4gb"
-#   "maxmemory-policy" = "allkeys-lru"
-#   "timeout" = "300"
+#   "storage.wiredTiger.engineConfig.cacheSizeGB" = "2"
+#   "net.maxIncomingConnections" = "65536"
 # }

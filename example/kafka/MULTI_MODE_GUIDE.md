@@ -1,79 +1,99 @@
-# MongoDB Multi-Mode Configuration Guide
+# Kafka Multi-Mode Configuration Guide
 
 ## Overview
 
-MongoDB supports multiple deployment modes. The refactored configuration uses a **single flexible cluster definition** that can be configured for different modes through variables.
+Kafka supports multiple deployment modes. The refactored configuration uses a **single flexible cluster definition** that can be configured for different modes through variables.
 
 ---
 
 ## Supported Modes
 
-### 1. Standalone Mode
-Single-node MongoDB instance (for development/testing).
+### 1. Combined Mode (Default)
+Nodes simultaneously act as both Broker and Controller roles. Recommended for most use cases.
 
 ```hcl
-mode = "standalone"
-replicas = 1
+mode = "combined"
+replicas = 3
+class_code = "kafka.combined.kafka-combine.1c1g.general"
 ```
 
-### 2. Replication Mode (Default)
-Primary-replica architecture for high availability.
+**Components:**
+- kafka-combine: Handles both message brokering and cluster coordination
+
+**Best for:** General purpose, simpler architecture, Kafka 3.3+
+
+---
+
+### 2. Separated Mode
+Nodes play only one role: either Broker or Controller. Provides better resource isolation.
 
 ```hcl
-mode = "replication"
-replicas = 2  # 1 primary + 1 replica
-class_code = "mongodb.replication.mongodb.2c2g.general"
+mode = "separated"
+broker_replicas = 3
+controller_replicas = 3
+broker_class_code = "kafka.separated.kafka-broker.1c1g.general"
+controller_class_code = "kafka.separated.kafka-controller.1c1g.general"
 ```
 
-### 3. Cluster Mode
-Sharded cluster for horizontal scaling and large datasets.
+**Components:**
+- kafka-broker: Handles message brokering
+- kafka-controller: Handles cluster coordination
+
+**Best for:** High-throughput scenarios, better resource isolation, Kafka 3.3+
+
+---
+
+### 3. With ZooKeeper Mode (Legacy)
+Uses ZooKeeper for managing cluster metadata and coordinating tasks. Compatible with KubeBlocks 0.9.
 
 ```hcl
-mode = "cluster"
-comp_num = 3  # Number of shards
-replicas = 2  # Replicas per shard
-network_mode = "HeadlessService"
-class_code = "mongodb.cluster.mongodb-cluster.2c1g.general"
-component_name = "mongodb-cluster"
-param_tpl_name = "mongodb-cluster-default-parameter-template"
+mode = "withZookeeper"
+broker_replicas = 3
+zookeeper_replicas = 3
+broker_class_code = "kafka.withZookeeper.kafka-broker.1c1g.general"
 ```
 
-**Total nodes:** `comp_num * replicas = 3 * 2 = 6 nodes`
+**Components:**
+- kafka-broker: Message brokering
+- kafka-zookeeper: Cluster metadata management
 
-### 4. Sentinel Mode
-Sentinel-based high availability with automatic failover.
+**Versions:** 2.8.2, 2.8.1
+
+**Best for:** Legacy systems, compatibility with older Kafka versions
+
+---
+
+### 4. With ZooKeeper-10 Mode (KubeBlocks 1.0)
+Similar to withZookeeper mode but compatible with KubeBlocks 1.0. Uses external ZooKeeper service reference.
 
 ```hcl
-mode = "sentinel"
-replicas = 2  # MongoDB data nodes
-network_mode = "HostNetwork"
-extra_sentinel = "{}"
-
-# Sentinel component configuration
-sentinel_component_name = "mongodb-sentinel"
-sentinel_replicas = 3
-sentinel_class_code = "mongodb.sentinel.mongodb-sentinel.0.5c0.5g.general"
+mode = "withZookeeper-10"
+broker_replicas = 3
+zookeeper_cluster_ref = "my-zookeeper-cluster"
 ```
 
-**Total components:** 
-- 1 MongoDB component (2 replicas)
-- 1 Sentinel component (3 replicas)
+**Components:**
+- kafka-broker: Message brokering
+- kb-zookeeper: References external ZooKeeper cluster
+
+**Versions:** 2.8.2, 2.8.1
+
+**Best for:** KubeBlocks 1.0 environments, shared ZooKeeper clusters
 
 ---
 
 ## Configuration Examples
 
-### Example 1: Simple Replication (Production Ready)
+### Example 1: Simple Combined Mode (Development)
 
 **File:** `terraform.tfvars`
 
 ```hcl
-cluster_name     = "mongodb-prod"
-mode             = "replication"
+cluster_name     = "kafka-dev"
+mode             = "combined"
 replicas         = 3
-storage_size_gb  = 50
-class_code       = "mongodb.replication.mongodb.4c4g.performance"
-termination_policy = "DoNotTerminate"
+storage_size_gb  = 20
+class_code       = "kafka.combined.kafka-combine.1c1g.general"
 ```
 
 **Deploy:**
@@ -83,65 +103,51 @@ termination_policy = "DoNotTerminate"
 
 ---
 
-### Example 2: Cluster Mode (Large Dataset)
+### Example 2: Production Separated Mode
 
-**File:** `terraform-cluster.tfvars`
+**File:** `terraform.tfvars`
 
 ```hcl
-cluster_name     = "mongodb-cluster-prod"
-mode             = "cluster"
-comp_num         = 6        # 6 shards
-replicas         = 2        # 2 replicas per shard
-network_mode     = "HeadlessService"
-storage_size_gb  = 100
-class_code       = "mongodb.cluster.mongodb-cluster.4c2g.performance"
-component_name   = "mongodb-cluster"
-param_tpl_name   = "mongodb-cluster-default-parameter-template"
+cluster_name     = "kafka-prod"
+mode             = "separated"
+broker_replicas         = 3
+controller_replicas     = 3
+broker_storage_gb       = 100
+controller_storage_gb   = 20
+broker_class_code       = "kafka.separated.kafka-broker.4c8g.performance"
+controller_class_code   = "kafka.separated.kafka-controller.2c4g.general"
+termination_policy      = "DoNotTerminate"
 ```
 
 **Deploy:**
 ```bash
 ./run.sh -t 1 \
-    -cn "mongodb-cluster-prod" \
-    -m "cluster" \
-    -r 2
+    -cn "kafka-prod" \
+    -m "separated"
 ```
 
-Then manually edit `terraform.tfvars` to add:
-```hcl
-comp_num = 6
-network_mode = "HeadlessService"
-component_name = "mongodb-cluster"
-```
+Then manually edit `terraform.tfvars` to add separated mode parameters.
 
 ---
 
-### Example 3: Sentinel Mode (High Availability)
+### Example 3: With ZooKeeper Mode (Legacy)
 
-**File:** `terraform-sentinel.tfvars`
+**File:** `terraform.tfvars`
 
 ```hcl
-cluster_name     = "mongodb-sentinel-prod"
-mode             = "sentinel"
-replicas         = 2
-network_mode     = "HostNetwork"
-extra_sentinel   = "{}"
-
-# Primary MongoDB component
-component_name   = "mongodb"
-class_code       = "mongodb.sentinel.mongodb.2c1g.general"
-
-# Sentinel component
-sentinel_replicas = 3
-sentinel_class_code = "mongodb.sentinel.mongodb-sentinel.0.5c0.5g.general"
+cluster_name     = "kafka-legacy"
+mode             = "withZookeeper"
+broker_replicas  = 3
+zookeeper_replicas = 3
+version          = "2.8.2"
 ```
 
 **Deploy:**
 ```bash
 ./run.sh -t 1 \
-    -cn "mongodb-sentinel-prod" \
-    -m "sentinel" \
-    -r 2
+    -cn "kafka-legacy" \
+    -m "withZookeeper" \
+    -v "2.8.2"
 ```
 
 ---
@@ -168,45 +174,44 @@ sentinel_class_code = "mongodb.sentinel.mongodb-sentinel.0.5c0.5g.general"
 
 ## Mode-Specific Considerations
 
-### Replication Mode
-- ✅ Simple setup
-- ✅ Automatic failover
-- ✅ Read scaling with replicas
-- ❌ Limited by single-node memory
+### Combined Mode
+- ✅ Simpler architecture
+- ✅ Fewer components to manage
+- ✅ Lower resource overhead
+- ❌ Less resource isolation
+- ❌ Single point of failure for coordination
 
-**Best for:** Medium-sized datasets, simple HA requirements
-
----
-
-### Cluster Mode
-- ✅ Horizontal scaling (sharding)
-- ✅ Very large datasets
-- ✅ High throughput
-- ❌ More complex management
-- ❌ Requires `comp_num` configuration
-
-**Best for:** Large datasets (>100GB), high throughput requirements
-
-**Key Parameters:**
-- `comp_num`: Number of shards (affects total capacity)
-- `network_mode`: Must be "HeadlessService"
-- `component_name`: Should be "mongodb-cluster"
+**Best for:** Most use cases, development, small to medium deployments
 
 ---
 
-### Sentinel Mode
-- ✅ Automatic failover
-- ✅ Client-side discovery
-- ✅ Flexible topology
-- ❌ Requires separate sentinel nodes
-- ❌ More resource overhead
+### Separated Mode
+- ✅ Better resource isolation
+- ✅ Independent scaling of brokers and controllers
+- ✅ Higher throughput potential
+- ❌ More complex architecture
+- ❌ More components to manage
 
-**Best for:** Complex HA requirements, existing MongoDB clients using Sentinel
+**Best for:** High-throughput production, large-scale deployments
 
 **Key Parameters:**
-- `network_mode`: Usually "HostNetwork"
-- `extra_sentinel`: Sentinel configuration (JSON)
-- `sentinel_replicas`: Typically 3 or 5 (odd number)
+- `broker_replicas`: Number of broker nodes
+- `controller_replicas`: Number of controller nodes (typically 3 or 5)
+- Separate class codes for brokers and controllers
+
+---
+
+### With ZooKeeper Mode
+- ✅ Compatible with legacy Kafka versions
+- ✅ Familiar architecture for existing users
+- ❌ Additional ZooKeeper maintenance
+- ❌ Not recommended for new deployments (Kafka 3.3+ has built-in coordination)
+
+**Best for:** Legacy systems, migration scenarios
+
+**Key Parameters:**
+- `version`: Must be 2.8.x
+- `zookeeper_replicas`: Typically 3 or 5 (odd number)
 
 ---
 
@@ -218,15 +223,15 @@ Scale compute/storage for all nodes:
 
 ```bash
 ./run.sh -t 4 \
-    -cc "mongodb.replication.mongodb.4c4g.performance" \
-    -s 100
+    -cc "kafka.combined.kafka-combine.2c4g.general" \
+    -s 50
 ```
 
-**Effect:** All nodes (primary, replicas, sentinels) are scaled
+**Effect:** All nodes are scaled to new specifications
 
 ---
 
-### HScale (Replication/Sentinel Modes)
+### HScale (Combined/Separated Modes)
 
 Add more replicas:
 
@@ -235,17 +240,19 @@ Add more replicas:
     -r 5
 ```
 
-**Effect:** Increases replica count for better read scaling
+**Effect:** Increases replica count for better throughput and fault tolerance
 
 ---
 
-### HScale (Cluster Mode)
+### HScale (Separated Mode - Advanced)
 
-For cluster mode, you typically scale by adding shards:
+For separated mode, you can scale brokers and controllers independently by editing `terraform.tfvars`:
 
 ```hcl
-# In terraform.tfvars
-comp_num = 9  # Increase from 6 to 9 shards
+# Increase brokers only
+broker_replicas = 5
+# Keep controllers at 3
+controller_replicas = 3
 ```
 
 Then apply:
@@ -253,34 +260,53 @@ Then apply:
 terraform apply -var-file=terraform.tfvars
 ```
 
-**Note:** This triggers a resharding operation which may take time.
+---
+
+## SASL Authentication
+
+All modes support SASL authentication:
+
+### Combined/Separated Mode
+
+```hcl
+extra = {
+  sasl = {
+    enable = true
+  }
+}
+```
+
+**Client Configuration:**
+```properties
+security.protocol=SASL_PLAINTEXT
+sasl.mechanism=PLAIN
+sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username='xx' password='xx'
+```
+
+### With ZooKeeper Mode
+
+```hcl
+extra = {
+  saslScramEnable = true
+}
+```
+
+Uses SCRAM-SHA-512 authentication mechanism.
 
 ---
 
 ## Backup Configuration
 
-All modes support backup with slight differences:
+All modes support topic backups:
 
-### Replication/Standalone
 ```hcl
 auto_backup_enabled = true
-pitr_enabled = true
-continuous_backup_method = "aof"
+auto_backup_method = "topics"
+backup_schedule = "0 2 * * *"
+retention_period = "7d"
 ```
 
-### Cluster Mode
-```hcl
-auto_backup_enabled = true
-pitr_enabled = false  # PITR not supported in cluster mode
-continuous_backup_method = "aof"
-```
-
-### Sentinel Mode
-```hcl
-auto_backup_enabled = true
-pitr_enabled = false  # PITR usually disabled for sentinel
-continuous_backup_method = "aof"
-```
+**Note:** Backups capture topic configurations and metadata, not message data.
 
 ---
 
@@ -298,64 +324,70 @@ kubectl get pods -l app.kubernetes.io/instance=<cluster-name> -n kubeblocks-clou
 
 ### Mode-Specific Checks
 
-**Replication:**
+**Combined Mode:**
 ```bash
-# Check replication status
-kubectl exec -it <primary-pod> -n <namespace> -- mongodb-cli info replication
+kubectl get pods -l app.kubernetes.io/component=kafka-combine -n <namespace>
 ```
 
-**Cluster:**
+**Separated Mode:**
 ```bash
-# Check cluster info
-kubectl exec -it <pod> -n <namespace> -- mongodb-cli cluster info
-kubectl exec -it <pod> -n <namespace> -- mongodb-cli cluster nodes
+# Check brokers
+kubectl get pods -l app.kubernetes.io/component=kafka-broker -n <namespace>
+
+# Check controllers
+kubectl get pods -l app.kubernetes.io/component=kafka-controller -n <namespace>
 ```
 
-**Sentinel:**
+**With ZooKeeper Mode:**
 ```bash
-# Check sentinel status
-kubectl exec -it <sentinel-pod> -n <namespace> -- mongodb-cli -p 26379 info sentinel
+# Check brokers
+kubectl get pods -l app.kubernetes.io/component=kafka-broker -n <namespace>
+
+# Check ZooKeeper
+kubectl get pods -l app.kubernetes.io/component=kafka-zookeeper -n <namespace>
 ```
 
 ---
 
 ## Troubleshooting
 
-### Issue: Cluster mode fails to initialize
+### Issue: Combined mode fails to initialize
 
 **Check:**
-1. Verify `comp_num` is set correctly
-2. Ensure `network_mode = "HeadlessService"`
-3. Check if `component_name = "mongodb-cluster"`
-4. Verify sufficient resources for all shards
+1. Verify sufficient resources for combined role
+2. Check if version supports combined mode (3.3+)
+3. Review pod logs
 
 ```bash
 kubectl describe cluster <cluster-name> -n kubeblocks-cloud-ns
+kubectl logs -l app.kubernetes.io/component=kafka-combine -n <namespace>
 ```
 
 ---
 
-### Issue: Sentinel mode has connectivity problems
+### Issue: Separated mode has connectivity problems
 
 **Check:**
-1. Verify `network_mode = "HostNetwork"`
-2. Ensure `extra_sentinel` is properly configured
-3. Check sentinel pod logs
+1. Verify both broker and controller pods are running
+2. Ensure controller quorum (at least 2 of 3 controllers)
+3. Check network policies
 
 ```bash
-kubectl logs -l app.kubernetes.io/component=mongodb-sentinel -n kubeblocks-cloud-ns
+kubectl get pods -l app.kubernetes.io/component=kafka-controller -n <namespace>
+kubectl logs -l app.kubernetes.io/component=kafka-controller -n <namespace>
 ```
 
 ---
 
-### Issue: Insufficient resources for cluster mode
+### Issue: ZooKeeper mode connection failures
 
-**Solution:**
-Reduce `comp_num` or use smaller instance types:
+**Check:**
+1. Verify ZooKeeper ensemble is healthy
+2. Ensure odd number of ZooKeeper nodes (3, 5, 7)
+3. Check ZooKeeper logs
 
-```hcl
-comp_num = 3  # Reduce from 6 to 3
-class_code = "mongodb.cluster.mongodb-cluster.1c1g.general"  # Smaller instances
+```bash
+kubectl logs -l app.kubernetes.io/component=kafka-zookeeper -n <namespace>
 ```
 
 ---
@@ -364,65 +396,61 @@ class_code = "mongodb.cluster.mongodb-cluster.1c1g.general"  # Smaller instances
 
 ### 1. Choose the Right Mode
 
-- **Development:** Standalone or small replication
-- **Production (medium):** Replication with 3+ replicas
-- **Production (large):** Cluster mode with appropriate shards
-- **Legacy compatibility:** Sentinel mode
+- **Development/Testing:** Combined mode (simpler)
+- **Production (medium):** Combined or Separated mode
+- **Production (large/high-throughput):** Separated mode
+- **Legacy systems:** With ZooKeeper mode (migration path)
 
 ### 2. Resource Planning
 
-**Replication Mode:**
-- Memory: Total dataset size + 20% overhead
-- CPU: Based on QPS requirements
-- Storage: Dataset size + growth projection
+**Combined Mode:**
+- CPU: 2-4 cores per node minimum
+- Memory: 4-8GB per node minimum
+- Storage: Based on retention policy and throughput
 
-**Cluster Mode:**
-- Per-shard memory: Total dataset / comp_num
-- Total nodes: comp_num × replicas
-- Plan for resharding overhead
+**Separated Mode:**
+- Brokers: Higher CPU/memory for message handling
+- Controllers: Lower resources (coordination only)
+- Plan for independent scaling
 
-**Sentinel Mode:**
-- Data nodes: Same as replication
-- Sentinel nodes: Minimal resources (0.5c0.5g typical)
-- Odd number of sentinels (3, 5, 7)
+**With ZooKeeper Mode:**
+- Brokers: Same as combined mode
+- ZooKeeper: Minimal resources (1-2 CPU, 2-4GB RAM)
+- Odd number of ZooKeeper nodes (3, 5, 7)
 
-### 3. Backup Strategy
+### 3. Version Selection
 
-- Enable auto backup for all production clusters
-- Test restore procedures regularly
-- Monitor backup success/failure
-- Configure appropriate retention period
+- **New deployments:** Use Kafka 3.9.0 or later with combined/separated mode
+- **Legacy compatibility:** Use 2.8.x with ZooKeeper mode only if required
+- **Avoid mixing:** Don't mix old and new versions in same environment
 
 ### 4. Monitoring
 
-- Set up alerts for memory usage (>80%)
-- Monitor replication lag
-- Track hit rate (should be >90% for cache)
-- Watch for connection pool exhaustion
+- Set up alerts for broker health
+- Monitor consumer lag
+- Track throughput metrics
+- Watch for under-replicated partitions
+- Monitor ZooKeeper health (if using ZooKeeper mode)
 
 ---
 
 ## Migration Paths
 
-### From Standalone to Replication
+### From With ZooKeeper to Combined/Separated
 
-1. Create new replication cluster
-2. Migrate data using MongoDB migration tools
-3. Update application configuration
-4. Decommission standalone cluster
+1. Create new cluster with combined/separated mode
+2. Migrate topics and configurations
+3. Update client connections
+4. Test thoroughly
+5. Decommission old cluster
 
-### From Replication to Cluster
-
-1. Create new cluster mode deployment
-2. Use MongoDB Cluster migration tools
-3. Test thoroughly
-4. Switch traffic gradually
+**Note:** Message data migration requires additional tools (MirrorMaker, etc.)
 
 ---
 
 ## Additional Resources
 
-- [MongoDB Documentation](https://mongodb.io/documentation)
-- [KubeBlocks MongoDB Guide](https://kubeblocks.io/docs)
+- [Apache Kafka Documentation](https://kafka.apache.org/documentation)
+- [KubeBlocks Kafka Guide](https://kubeblocks.io/docs)
 - [RUN_SCRIPT_GUIDE.md](RUN_SCRIPT_GUIDE.md)
 - [ops-examples/README.md](ops-examples/README.md)
