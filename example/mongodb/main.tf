@@ -7,244 +7,152 @@ terraform {
 }
 
 provider "kbcloud" {
-  api_url        = "https://kb-cloud-apiserver-endpoint.com/api"
+  api_url        = var.api_url
 
-  api_key        = "your_api_key"
-  api_secret     = "your_api_secret"
+  api_key        = var.api_key
+  api_secret     = var.api_secret
 
-  admin_api_key  = "your_admin_api_key"
-  admin_api_secret = "your_admin_api_secret"
+  admin_api_key  = var.admin_api_key
+  admin_api_secret = var.admin_api_secret
 
   # if you need to skip verify, please set https_skip_verify = true
-  # https_skip_verify = true
+  https_skip_verify = var.https_skip_verify
 }
 
 
-resource "kbcloud_cluster" "my_mongodb_sharding" {
-  name             = "my-mongodb-sharding"
-  display_name     = "my-mongodb-sharding"
-  org_name         = "my-org"
-  environment_name = "prod"
-  engine           = "mongodb"
-  version          = "8.0.17"
-  mode             = "sharding"
-  cluster_type     = "Normal"
-  project          = "kubeblocks-cloud-ns"
+resource "kbcloud_cluster" "my_mongodb" {
+  name             = var.cluster_name
+  display_name     = var.display_name
+  org_name         = var.org_name
+  environment_name = var.environment_name
+  engine           = var.engine
+  version          = var.version
+  mode             = var.mode
+  cluster_type     = var.cluster_type
+  project          = var.project
 
-  single_zone        = true
-  termination_policy = "Delete"
+  single_zone        = var.single_zone
+  termination_policy = var.termination_policy
 
   maintaince_window = {
-    start_hour = 18
-    end_hour   = 22
-    weekdays   = "1,2,3,4,5,6,7"
+    start_hour = var.maintenance_start_hour
+    end_hour   = var.maintenance_end_hour
+    weekdays   = var.maintenance_weekdays
   }
 
-  components = [
+  components = var.mode == "sharding" ? [
+    # Shard component
     {
-      component = "mongo-shard"
-      comp_num  = 2
-      replicas  = 3
+      component     = var.shard_component_name
+      comp_num      = var.shard_comp_num
+      replicas      = var.shard_replicas
+      storage_class = var.storage_class
+      class_code    = var.shard_class_code
+      
       volumes = [
         {
           name    = "data"
-          storage = 20 # GB
+          storage = var.shard_storage_size_gb
+          
           io_limits = {
-            read_iops  = 1000
-            write_iops = 1000
+            read_iops  = var.shard_read_iops
+            write_iops = var.shard_write_iops
           }
           io_reserves = {
-            read_iops  = 1000
-            write_iops = 1000
+            read_iops  = var.shard_read_iops
+            write_iops = var.shard_write_iops
           }
         }
       ]
-      storage_class = "apelocal-rawdisk-xfs"
-      class_code    = "mongodb.sharding.mongo-shard.1c1g.general"
     },
+    # Config server component
     {
-      component = "mongo-config-server"
-      replicas  = 3
+      component     = var.config_server_component_name
+      replicas      = var.config_server_replicas
+      storage_class = var.storage_class
+      class_code    = var.config_server_class_code
+      
       volumes = [
         {
           name    = "data"
-          storage = 20 # GB
+          storage = var.config_server_storage_size_gb
+          
           io_limits = {
-            read_iops  = 1000
-            write_iops = 1000
+            read_iops  = var.config_server_read_iops
+            write_iops = var.config_server_write_iops
           }
           io_reserves = {
-            read_iops  = 1000
-            write_iops = 1000
+            read_iops  = var.config_server_read_iops
+            write_iops = var.config_server_write_iops
           }
         }
       ]
-      storage_class = "apelocal-rawdisk-xfs"
-      class_code    = "mongodb.sharding.mongo-config-server.1c1g.general"
     },
+    # Mongos component (no volumes)
     {
-      component  = "mongo-mongos"
-      replicas   = 2
-      class_code = "mongodb.sharding.mongo-mongos.1c1g.general"
+      component  = var.mongos_component_name
+      replicas   = var.mongos_replicas
+      class_code = var.mongos_class_code
+    }
+  ] : [
+    # Replicaset or standalone mode (single component)
+    {
+      component     = var.component_name
+      replicas      = var.replicas
+      storage_class = var.storage_class
+      class_code    = var.class_code
+      
+      volumes = [
+        {
+          name    = "data"
+          storage = var.storage_size_gb
+          
+          io_limits = {
+            read_iops  = var.read_iops
+            write_iops = var.write_iops
+          }
+          io_reserves = {
+            read_iops  = var.read_iops
+            write_iops = var.write_iops
+          }
+        }
+      ]
     }
   ]
 
-  param_tpls = [
+  param_tpls = var.mode == "sharding" ? [
     {
-      component           = "mongo-shard"
-      param_tpl_name      = "mongo-shard-default-parameter-template"
-      param_tpl_partition = "default"
+      component           = var.shard_component_name
+      param_tpl_name      = var.shard_param_tpl_name
+      param_tpl_partition = var.param_tpl_partition
     },
     {
-      component           = "mongo-config-server"
-      param_tpl_name      = "mongo-config-server-default-parameter-template"
-      param_tpl_partition = "default"
+      component           = var.config_server_component_name
+      param_tpl_name      = var.config_server_param_tpl_name
+      param_tpl_partition = var.param_tpl_partition
     },
     {
-      component           = "mongo-mongos"
-      param_tpl_name      = "mongo-mongos-default-parameter-template"
-      param_tpl_partition = "default"
+      component           = var.mongos_component_name
+      param_tpl_name      = var.mongos_param_tpl_name
+      param_tpl_partition = var.param_tpl_partition
+    }
+  ] : [
+    {
+      component           = var.component_name
+      param_tpl_name      = var.param_tpl_name
+      param_tpl_partition = var.param_tpl_partition
     }
   ]
 
   backup = {
-    auto_backup              = true
-    auto_backup_method       = "pbm-physical"
-    backup_repo              = "my-backuprepo"
-    retention_period         = "7d"
-    retention_policy         = "LastOne"
-    cron_expression          = "0 18 * * *"
-    snapshot_volumes         = false
-    pitr_enabled             = true
-    continuous_backup_method = "pbm-pitr"
-  }
-}
-
-resource "kbcloud_cluster" "my_mongodb_replicaset" {
-  name             = "my-mongodb-replicaset"
-  display_name     = "my-mongodb-replicaset"
-  org_name         = "my-org"
-  environment_name = "prod"
-  engine           = "mongodb"
-  version          = "6.0.27"
-  mode             = "replicaset"
-  cluster_type     = "Normal"
-  project          = "kubeblocks-cloud-ns"
-
-  single_zone        = true
-  termination_policy = "Delete"
-
-  maintaince_window = {
-    start_hour = 18
-    end_hour   = 22
-    weekdays   = "1,2,3,4,5,6,7"
-  }
-
-  components = [
-    {
-      component = "mongodb"
-      replicas  = 3
-      volumes = [
-        {
-          name    = "data"
-          storage = 20 # GB
-          io_limits = {
-            read_iops  = 1000
-            write_iops = 1000
-          }
-          io_reserves = {
-            read_iops  = 1000
-            write_iops = 1000
-          }
-        }
-      ]
-      storage_class = "apelocal-rawdisk-xfs"
-      class_code    = "mongodb.replicaset.mongodb.1c1g.general"
-    }
-  ]
-
-  param_tpls = [
-    {
-      component           = "mongodb"
-      param_tpl_name      = "mongodb-default-parameter-template"
-      param_tpl_partition = "default"
-    }
-  ]
-
-  backup = {
-    auto_backup              = true
-    auto_backup_method       = "pbm-physical"
-    backup_repo              = "my-backuprepo"
-    retention_period         = "7d"
-    retention_policy         = "LastOne"
-    cron_expression          = "0 18 * * *"
-    snapshot_volumes         = false
-    pitr_enabled             = true
-    continuous_backup_method = "pbm-pitr"
-  }
-}
-
-
-resource "kbcloud_cluster" "my_mongodb_standalone" {
-  name             = "my-mongodb-standalone"
-  display_name     = "my-mongodb-standalone"
-  org_name         = "my-org"
-  environment_name = "prod"
-  engine           = "mongodb"
-  version          = "6.0.27"
-  mode             = "standalone"
-  cluster_type     = "Normal"
-  project          = "kubeblocks-cloud-ns"
-
-  single_zone        = true
-  termination_policy = "Delete"
-
-  maintaince_window = {
-    start_hour = 18
-    end_hour   = 22
-    weekdays   = "1,2,3,4,5,6,7"
-  }
-
-  components = [
-    {
-      component = "mongodb"
-      replicas  = 1
-      volumes = [
-        {
-          name    = "data"
-          storage = 20 # GB
-          io_limits = {
-            read_iops  = 1000
-            write_iops = 1000
-          }
-          io_reserves = {
-            read_iops  = 1000
-            write_iops = 1000
-          }
-        }
-      ]
-      storage_class = "apelocal-rawdisk-xfs"
-      class_code    = "mongodb.standalone.mongodb.1c1g.general"
-    }
-  ]
-
-  param_tpls = [
-    {
-      component           = "mongodb"
-      param_tpl_name      = "mongodb-default-parameter-template"
-      param_tpl_partition = "default"
-    }
-  ]
-
-  backup = {
-    auto_backup              = true
-    auto_backup_method       = "pbm-physical"
-    backup_repo              = "my-backuprepo"
-    retention_period         = "7d"
-    retention_policy         = "LastOne"
-    cron_expression          = "0 18 * * *"
-    snapshot_volumes         = false
-    pitr_enabled             = true
-    continuous_backup_method = "pbm-pitr"
+    auto_backup              = var.auto_backup_enabled
+    auto_backup_method       = var.auto_backup_method
+    backup_repo              = var.backup_repo
+    retention_period         = var.retention_period
+    retention_policy         = var.retention_policy
+    cron_expression          = var.backup_schedule
+    snapshot_volumes         = var.snapshot_volumes
+    pitr_enabled             = var.pitr_enabled
+    continuous_backup_method = var.continuous_backup_method
   }
 }

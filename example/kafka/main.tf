@@ -7,253 +7,179 @@ terraform {
 }
 
 provider "kbcloud" {
-  api_url = "https://kb-cloud-apiserver-endpoint.com/api"
+  api_url = var.api_url
 
-  api_key    = "your_api_key"
-  api_secret = "your_api_secret"
+  api_key    = var.api_key
+  api_secret = var.api_secret
 
-  admin_api_key    = "your_admin_api_key"
-  admin_api_secret = "your_admin_api_secret"
+  admin_api_key    = var.admin_api_key
+  admin_api_secret = var.admin_api_secret
 
   # if you need to skip verify, please set https_skip_verify = true
-  # https_skip_verify = true
+  https_skip_verify = var.https_skip_verify
 }
 
 
-resource "kbcloud_cluster" "my_combined_kafka" {
-  name             = "my-combined-kafka"
-  display_name     = "my-combined-kafka"
-  org_name         = "my-org"
-  environment_name = "prod"
-  engine           = "kafka"
-  version          = "3.9.0"
-  mode             = "combined" # support "combined" "separated" "withZookeeper"
-  cluster_type     = "Normal"
-  project          = "kubeblocks-cloud-ns"
+resource "kbcloud_cluster" "my_kafka" {
+  name             = var.cluster_name
+  display_name     = var.display_name
+  org_name         = var.org_name
+  environment_name = var.environment_name
+  engine           = var.engine
+  version          = var.version
+  mode             = var.mode
+  cluster_type     = var.cluster_type
+  project          = var.project
 
-  single_zone        = true
-  termination_policy = "Delete"
-  network_mode       = "HeadlessService"
+  single_zone        = var.single_zone
+  termination_policy = var.termination_policy
+  network_mode       = var.network_mode
 
   extra = {
     sasl = {
-      enable = true
+      enable = var.sasl_enabled
+    }
+  }
+  
+  dynamic "service_refs" {
+    for_each = var.zookeeper_cluster_ref != "" ? [1] : []
+    content {
+      name    = "zookeeper"
+      cluster = var.zookeeper_cluster_ref
     }
   }
 
   maintaince_window = {
-    start_hour = 18
-    end_hour   = 22
-    weekdays   = "1,2,3,4,5,6,7"
+    start_hour = var.maintenance_start_hour
+    end_hour   = var.maintenance_end_hour
+    weekdays   = var.maintenance_weekdays
   }
 
-  components = [
+  components = var.mode == "combined" ? [
+    # Combined mode: single component with data and metadata volumes
     {
-      component = "kafka-combine"
-      replicas  = 1
+      component     = var.combined_component_name
+      replicas      = var.combined_replicas
+      storage_class = "apelocal-rawdisk-xfs"
+      class_code    = var.combined_class_code
+      
       volumes = [
         {
           name    = "data"
-          storage = 20 # GB
+          storage = var.combined_data_storage_gb
           io_limits = {
-            read_iops  = 1000
-            write_iops = 1000
+            read_iops  = var.combined_read_iops
+            write_iops = var.combined_write_iops
           }
           io_reserves = {
-            read_iops  = 1000
-            write_iops = 1000
+            read_iops  = var.combined_read_iops
+            write_iops = var.combined_write_iops
           }
         },
         {
           name    = "metadata"
-          storage = 5 # GB
+          storage = var.combined_metadata_storage_gb
           io_limits = {
-            read_iops  = 1000
-            write_iops = 1000
+            read_iops  = var.combined_read_iops
+            write_iops = var.combined_write_iops
           }
           io_reserves = {
-            read_iops  = 1000
-            write_iops = 1000
+            read_iops  = var.combined_read_iops
+            write_iops = var.combined_write_iops
           }
         }
       ]
+    }
+  ] : var.mode == "separated" ? [
+    # Separated mode: broker and controller components
+    {
+      component     = var.broker_component_name
+      replicas      = var.broker_replicas
       storage_class = "apelocal-rawdisk-xfs"
-      class_code    = "kafka.combined.kafka-combine.1c1g.general"
+      class_code    = var.broker_class_code
+      
+      volumes = [
+        {
+          name    = "data"
+          storage = var.broker_data_storage_gb
+          io_limits = {
+            read_iops  = var.broker_read_iops
+            write_iops = var.broker_write_iops
+          }
+          io_reserves = {
+            read_iops  = var.broker_read_iops
+            write_iops = var.broker_write_iops
+          }
+        }
+      ]
+    },
+    {
+      component     = var.controller_component_name
+      replicas      = var.controller_replicas
+      storage_class = "apelocal-rawdisk-xfs"
+      class_code    = var.controller_class_code
+      
+      volumes = [
+        {
+          name    = "metadata"
+          storage = var.controller_metadata_storage_gb
+          io_limits = {
+            read_iops  = var.controller_read_iops
+            write_iops = var.controller_write_iops
+          }
+          io_reserves = {
+            read_iops  = var.controller_read_iops
+            write_iops = var.controller_write_iops
+          }
+        }
+      ]
+    }
+  ] : [
+    # withZookeeper mode: only broker component
+    {
+      component     = var.broker_component_name
+      replicas      = var.broker_replicas
+      storage_class = "apelocal-rawdisk-xfs"
+      class_code    = "kafka.${var.mode}.kafka-broker.1c1g.general"
+      
+      volumes = [
+        {
+          name    = "data"
+          storage = var.broker_data_storage_gb
+          io_limits = {
+            read_iops  = var.broker_read_iops
+            write_iops = var.broker_write_iops
+          }
+          io_reserves = {
+            read_iops  = var.broker_read_iops
+            write_iops = var.broker_write_iops
+          }
+        },
+        {
+          name    = "metadata"
+          storage = var.controller_metadata_storage_gb
+          io_limits = {
+            read_iops  = var.broker_read_iops
+            write_iops = var.broker_write_iops
+          }
+          io_reserves = {
+            read_iops  = var.broker_read_iops
+            write_iops = var.broker_write_iops
+          }
+        }
+      ]
     }
   ]
 
   param_tpls = []
 
   backup = {
-    auto_backup        = true
-    auto_backup_method = "topics"
-    backup_repo        = "my-backuprepo"
-    retention_period   = "7d"
-    retention_policy   = "LastOne"
-    cron_expression    = "0 18 * * *"
-    snapshot_volumes   = false
-  }
-}
-
-
-resource "kbcloud_cluster" "my_separated_kafka" {
-  name             = "my-separated-kafka"
-  display_name     = "my-separated-kafka"
-  org_name         = "my-org"
-  environment_name = "prod"
-  engine           = "kafka"
-  version          = "3.9.0"
-  mode             = "separated"
-  cluster_type     = "Normal"
-  project          = "kubeblocks-cloud-ns"
-
-  single_zone        = true
-  termination_policy = "Delete"
-  network_mode       = "HeadlessService"
-
-  extra = {
-    sasl = {
-      enable = true
-    }
-  }
-
-  maintaince_window = {
-    start_hour = 18
-    end_hour   = 22
-    weekdays   = "1,2,3,4,5,6,7"
-  }
-
-  components = [
-    {
-      component = "kafka-broker"
-      replicas  = 3
-      volumes = [
-        {
-          name    = "data"
-          storage = 20 # GB
-          io_limits = {
-            read_iops  = 1000
-            write_iops = 1000
-          }
-          io_reserves = {
-            read_iops  = 1000
-            write_iops = 1000
-          }
-        }
-      ]
-      storage_class = "apelocal-rawdisk-xfs"
-      class_code    = "kafka.separated.kafka-broker.1c1g.general"
-    },
-    {
-      component = "kafka-controller"
-      replicas  = 3
-      volumes = [
-        {
-          name    = "metadata"
-          storage = 5 # GB
-          io_limits = {
-            read_iops  = 1000
-            write_iops = 1000
-          }
-          io_reserves = {
-            read_iops  = 1000
-            write_iops = 1000
-          }
-        }
-      ]
-      storage_class = "apelocal-rawdisk-xfs"
-      class_code    = "kafka.separated.kafka-controller.1c1g.general"
-    }
-  ]
-
-  backup = {
-    auto_backup        = true
-    auto_backup_method = "topics"
-    backup_repo        = "my-backuprepo"
-    retention_period   = "7d"
-    retention_policy   = "LastOne"
-    cron_expression    = "0 18 * * *"
-    snapshot_volumes   = false
-  }
-}
-
-
-resource "kbcloud_cluster" "my_zookeeper_kafka" {
-  name             = "my-zookeeper-kafka"
-  display_name     = "my-zookeeper-kafka"
-  org_name         = "my-org"
-  environment_name = "prod"
-  engine           = "kafka"
-  version          = "2.8.2"
-  mode             = "withZookeeper-10"
-  cluster_type     = "Normal"
-  project          = "kubeblocks-cloud-ns"
-
-  single_zone        = true
-  termination_policy = "Delete"
-  network_mode       = "HeadlessService"
-
-  extra = {
-    sasl = {
-      enable = true
-    }
-  }
-
-  service_refs = [
-    {
-      name    = "zookeeper"
-      cluster = "oak24"
-    }
-  ]
-
-  maintaince_window = {
-    start_hour = 18
-    end_hour   = 22
-    weekdays   = "1,2,3,4,5,6,7"
-  }
-
-  components = [
-    {
-      component = "kafka-broker"
-      replicas  = 5
-      volumes = [
-        {
-          name    = "data"
-          storage = 20 # GB
-          io_limits = {
-            read_iops  = 1000
-            write_iops = 1000
-          }
-          io_reserves = {
-            read_iops  = 1000
-            write_iops = 1000
-          }
-        },
-        {
-          name    = "metadata"
-          storage = 5 # GB
-          io_limits = {
-            read_iops  = 1000
-            write_iops = 1000
-          }
-          io_reserves = {
-            read_iops  = 1000
-            write_iops = 1000
-          }
-        }
-      ]
-      storage_class = "apelocal-rawdisk-xfs"
-      class_code    = "kafka.withZookeeper-10.kafka-broker.1c1g.general"
-    }
-  ]
-
-  backup = {
-    auto_backup        = true
-    auto_backup_method = "topics"
-    backup_repo        = "my-backuprepo"
-    retention_period   = "7d"
-    retention_policy   = "LastOne"
-    cron_expression    = "0 18 * * *"
-    snapshot_volumes   = false
+    auto_backup        = var.auto_backup_enabled
+    auto_backup_method = var.auto_backup_method
+    backup_repo        = var.backup_repo
+    retention_period   = var.retention_period
+    retention_policy   = var.retention_policy
+    cron_expression    = var.backup_schedule
+    snapshot_volumes   = var.snapshot_volumes
   }
 }

@@ -7,79 +7,82 @@ terraform {
 }
 
 provider "kbcloud" {
-  api_url = "https://kb-cloud-apiserver-endpoint.com/api"
+  api_url = var.api_url
 
-  api_key    = "your_api_key"
-  api_secret = "your_api_secret"
+  api_key    = var.api_key
+  api_secret = var.api_secret
 
-  admin_api_key    = "your_admin_api_key"
-  admin_api_secret = "your_admin_api_secret"
+  admin_api_key    = var.admin_api_key
+  admin_api_secret = var.admin_api_secret
 
   # if you need to skip verify, please set https_skip_verify = true
-  # https_skip_verify = true
+  https_skip_verify = var.https_skip_verify
 }
 
 resource "kbcloud_cluster" "my_pg" {
-  name             = "my-pg"
-  display_name     = "my-pg"
-  org_name         = "my-org"
-  environment_name = "prod"
-  engine           = "postgresql"
-  version          = "18.1.0"
-  mode             = "replication" # or "standalone"
-  cluster_type     = "Normal"
-  project          = "kubeblocks-cloud-ns"
+  name             = var.cluster_name
+  display_name     = var.display_name
+  org_name         = var.org_name
+  environment_name = var.environment_name
+  engine           = var.engine
+  version          = var.version
+  mode             = var.mode
+  cluster_type     = var.cluster_type
+  project          = var.project
 
-  single_zone        = true
-  termination_policy = "Delete" # or "DoNotTerminate"
+  single_zone        = var.single_zone
+  termination_policy = var.termination_policy
+  
   maintaince_window = {
-    start_hour = 18
-    end_hour   = 22
-    weekdays   = "1,2,3,4,5,6,7"
+    start_hour = var.maintenance_start_hour
+    end_hour   = var.maintenance_end_hour
+    weekdays   = var.maintenance_weekdays
   }
 
   components = [
     {
-      component = "postgresql"
-      replicas  = 2
+      component     = var.component_name
+      replicas      = var.replicas
+      storage_class = var.storage_class
+      class_code    = var.class_code
+      
       volumes = [
         {
           name    = "data"
-          storage = 20 # GB
+          storage = var.storage_size_gb
+          
           io_limits = {
-            read_iops  = 2000
-            write_iops = 2000
+            read_iops  = var.read_iops
+            write_iops = var.write_iops
           }
           io_reserves = {
-            read_iops  = 2000
-            write_iops = 2000
+            read_iops  = var.read_iops
+            write_iops = var.write_iops
           }
         }
       ]
-      storage_class = "apelocal-rawdisk-xfs"
-      class_code    = "postgresql.replication.postgresql.1c2g.general"
     }
   ]
 
   param_tpls = [
     {
-      component           = "postgresql"
-      param_tpl_name      = "postgresql-18.0-default-parameter-template"
-      param_tpl_partition = "default"
+      component           = var.component_name
+      param_tpl_name      = var.param_tpl_name
+      param_tpl_partition = var.param_tpl_partition
     }
   ]
 
   backup = {
-    auto_backup                 = true
-    auto_backup_method          = "wal-g"
-    backup_repo                 = "my-backuprepo"
-    retention_period            = "7d"
-    retention_policy            = "LastOne"
-    cron_expression             = "0 18 * * *"
-    snapshot_volumes            = false
-    pitr_enabled                = true
-    continuous_backup_method    = "wal-g-archive"
-    incremental_backup_enabled  = false
-    incremental_cron_expression = "0 18 * * *"
+    auto_backup                 = var.auto_backup_enabled
+    auto_backup_method          = var.auto_backup_method
+    backup_repo                 = var.backup_repo
+    retention_period            = var.retention_period
+    retention_policy            = var.retention_policy
+    cron_expression             = var.backup_schedule
+    snapshot_volumes            = var.snapshot_volumes
+    pitr_enabled                = var.pitr_enabled
+    continuous_backup_method    = var.continuous_backup_method
+    incremental_backup_enabled  = var.incremental_backup_enabled
+    incremental_cron_expression = var.incremental_backup_schedule
   }
 }
