@@ -62,7 +62,7 @@ provider "kbcloud" {
 
 resource "kbcloud_cluster" "my_mysql" {
   name             = "my-mysql-cluster"
-  org_name         = "my-org"
+  org_name         = "default-org"
   environment_name = "prod"
   engine           = "mysql"
   version          = "8.0.44"

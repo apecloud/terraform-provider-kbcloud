@@ -1,7 +1,8 @@
 terraform {
   required_providers {
     kbcloud = {
-      source = "registry.terraform.io/apecloud/kbcloud"
+      source  = "registry.terraform.io/apecloud/kbcloud"
+      version = "2.2.0-beta.0"
     }
   }
 }

@@ -209,7 +209,7 @@ admin_api_secret = "your-admin-api-secret"
 # Cluster Configuration
 cluster_name     = "my-mysql"
 display_name     = "My MySQL Cluster"
-org_name         = "my-org"
+org_name         = "default-org"
 environment_name = "prod"
 project          = "kubeblocks-cloud-ns"
 
