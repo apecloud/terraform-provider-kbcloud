@@ -124,7 +124,7 @@ chmod +x run.sh
     -env "prod" \
     -r 3 \
     -s 100 \
-    -cc "mysql.replication.mysql.4c8g.performance" \
+    -cc "mysql.replication.mysql.4c8g.general" \
     -tp "DoNotTerminate"
 ```
 
@@ -140,7 +140,7 @@ chmod +x run.sh
 
 ```bash
 ./run.sh -t 4 \
-    -cc "mysql.replication.mysql.8c16g.performance"
+    -cc "mysql.replication.mysql.8c16g.general"
 ```
 
 **What this does:**
@@ -280,7 +280,7 @@ chmod +x run.sh
 ./run.sh -t 2
 
 # Test large configuration
-./run.sh -t 1 -cn "test-large" -r 3 -s 100 -cc "mysql.replication.mysql.4c8g.performance"
+./run.sh -t 1 -cn "test-large" -r 3 -s 100 -cc "mysql.replication.mysql.4c8g.general"
 # ... run tests ...
 ./run.sh -t 2
 ```
@@ -342,7 +342,7 @@ cluster_name     = "my-mysql"
 environment_name = "prod"
 replicas         = 3
 storage_size_gb  = 100
-class_code       = "mysql.replication.mysql.4c8g.performance"
+class_code       = "mysql.replication.mysql.4c8g.general"
 
 # API credentials (recommended to use environment variables)
 api_key          = "your_api_key"
@@ -492,7 +492,7 @@ Create a custom tfvars file for complex changes:
 
 ```bash
 cat > custom-ops.tfvars << EOF
-class_code = "mysql.replication.mysql.4c8g.performance"
+class_code = "mysql.replication.mysql.4c8g.general"
 replicas = 3
 auto_backup_enabled = true
 backup_schedule = "0 2 * * *"

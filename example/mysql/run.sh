@@ -80,7 +80,7 @@ Examples:
         -env "prod" \\
         -r 3 \\
         -s 100 \\
-        -cc "mysql.replication.mysql.4c8g.performance"
+        -cc "mysql.replication.mysql.4c8g.general"
     
     # Scale up compute resources
     ./run.sh -t 4 \\

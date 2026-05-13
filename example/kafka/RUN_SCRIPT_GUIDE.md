@@ -124,7 +124,7 @@ chmod +x run.sh
     -env "prod" \
     -r 3 \
     -s 100 \
-    -cc "kafka.separated.kafka-broker.4c8g.performance" \
+    -cc "kafka.separated.kafka-broker.4c8g.general" \
     -tp "DoNotTerminate"
 ```
 
@@ -257,7 +257,7 @@ chmod +x run.sh
 # Step 4: Enable backups
 ./run.sh -t 7 \
     -ab true \
-    -bm "xtrabackup" \
+    -bm "topics" \
     -bs "0 3 * * *"
 
 # Step 5: When done, destroy
@@ -280,7 +280,7 @@ chmod +x run.sh
 ./run.sh -t 2
 
 # Test large configuration
-./run.sh -t 1 -cn "test-large" -r 3 -s 100 -cc "kafka.separated.kafka-broker.4c8g.performance"
+./run.sh -t 1 -cn "test-large" -r 3 -s 100 -cc "kafka.separated.kafka-broker.4c8g.general"
 # ... run tests ...
 ./run.sh -t 2
 ```
@@ -342,7 +342,7 @@ cluster_name     = "my-kafka"
 environment_name = "prod"
 replicas         = 3
 storage_size_gb  = 100
-class_code       = "kafka.separated.kafka-broker.4c8g.performance"
+class_code       = "kafka.separated.kafka-broker.4c8g.general"
 
 # API credentials (recommended to use environment variables)
 api_key          = "your_api_key"
@@ -492,7 +492,7 @@ Create a custom tfvars file for complex changes:
 
 ```bash
 cat > custom-ops.tfvars << EOF
-class_code = "kafka.separated.kafka-broker.4c8g.performance"
+class_code = "kafka.separated.kafka-broker.4c8g.general"
 replicas = 3
 auto_backup_enabled = true
 backup_schedule = "0 2 * * *"

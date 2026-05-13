@@ -202,7 +202,7 @@ terraform apply -var-file=terraform.tfvars
 
 # 2. Scale up for production workload
 terraform apply -var-file=terraform.tfvars \
-  -var='class_code=mysql.replication.mysql.4c8g.performance' \
+  -var='class_code=mysql.replication.mysql.4c8g.general' \
   -var='storage_size_gb=100' \
   -var='replicas=3'
 

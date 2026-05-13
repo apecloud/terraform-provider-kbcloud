@@ -40,7 +40,7 @@ redis/
 ./run.sh -t 5 -r 3
 
 # Enable backups
-./run.sh -t 7 -ab true -bm "rdb" -bs "0 2 * * *"
+./run.sh -t 7 -ab true -bm "aof" -bs "0 2 * * *"
 
 # Destroy cluster
 ./run.sh -t 2
@@ -136,7 +136,7 @@ Configure automatic backups with RDB/AOF.
 
 **Using run.sh:**
 ```bash
-./run.sh -t 7 -ab true -bm "rdb" -bs "0 2 * * *" -rp "7d"
+./run.sh -t 7 -ab true -bm "aof" -bs "0 2 * * *" -rp "7d"
 ```
 
 **Using tfvars overlay:**
@@ -179,10 +179,10 @@ See [ops-examples/README.md](ops-examples/README.md#5-termination-policy) for mo
 ```bash
 # 1. Create production cluster
 ./run.sh -t 1 -cn "redis-prod" -env "prod" -r 3 -s 50 \
-  -cc "redis.replication.redis.4c4g.performance" -tp "DoNotTerminate"
+  -cc "redis.replication.redis.4c8g.general" -tp "DoNotTerminate"
 
 # 2. Enable backups
-./run.sh -t 7 -ab true -bm "rdb" -bs "0 2 * * *" -rp "7d"
+./run.sh -t 7 -ab true -bm "aof" -bs "0 2 * * *" -rp "7d"
 ```
 
 ### Workflow 2: Development Environment

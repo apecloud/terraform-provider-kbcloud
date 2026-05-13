@@ -265,7 +265,7 @@ variable "auto_backup_enabled" {
 variable "auto_backup_method" {
   description = "Auto backup method"
   type        = string
-  default     = "wal-g"
+  default     = "wal-g-archive"
 }
 
 variable "backup_schedule" {

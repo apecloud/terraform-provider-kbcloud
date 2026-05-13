@@ -84,7 +84,7 @@ Examples:
         -env "prod" \\
         -r 3 \\
         -s 100 \\
-        -cc "mssql.cluster.mssql.4c8g.performance"
+        -cc "mssql.cluster.mssql.4c8g.general"
     
     # Scale up compute resources
     ./run.sh -t 4 \\

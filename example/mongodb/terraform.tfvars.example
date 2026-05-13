@@ -52,7 +52,7 @@ sentinel_replicas       = 3
 sentinel_storage_size_gb = 20
 sentinel_read_iops      = 500
 sentinel_write_iops     = 500
-sentinel_class_code     = "mongodb.sentinel.mongodb-sentinel.0.5c0.5g.general"
+sentinel_class_code     = "mongodb.sentinel.mongodb-sentinel.1c2g.general"
 
 # Extra Configuration (for sentinel mode)
 extra_sentinel = "{}"
@@ -70,4 +70,4 @@ retention_policy          = "LastOne"
 backup_schedule           = "0 18 * * *"
 snapshot_volumes          = false
 pitr_enabled              = true
-continuous_backup_method  = "aof"
+continuous_backup_method  = "pbm-pitr"

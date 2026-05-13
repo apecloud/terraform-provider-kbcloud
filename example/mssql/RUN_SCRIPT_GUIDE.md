@@ -124,7 +124,7 @@ chmod +x run.sh
     -env "prod" \
     -r 3 \
     -s 100 \
-    -cc "mssql.cluster.mssql.4c8g.performance" \
+    -cc "mssql.cluster.mssql.4c8g.general" \
     -tp "DoNotTerminate"
 ```
 
@@ -140,7 +140,7 @@ chmod +x run.sh
 
 ```bash
 ./run.sh -t 4 \
-    -cc "mssql.cluster.mssql.8c16g.performance"
+    -cc "mssql.cluster.mssql.8c16g.general"
 ```
 
 **What this does:**
@@ -248,7 +248,7 @@ chmod +x run.sh
 
 # Step 2: Scale up after load increases
 ./run.sh -t 4 \
-    -cc "mssql.cluster.mssql.4c8g.performance"
+    -cc "mssql.cluster.mssql.4c8g.general"
 
 # Step 3: Add more replicas for read scaling
 ./run.sh -t 5 \
@@ -275,12 +275,12 @@ chmod +x run.sh
 ./run.sh -t 2
 
 # Test medium configuration
-./run.sh -t 1 -cn "test-medium" -r 3 -s 50 -cc "mssql.cluster.mssql.4c8g.performance"
+./run.sh -t 1 -cn "test-medium" -r 3 -s 50 -cc "mssql.cluster.mssql.4c8g.general"
 # ... run tests ...
 ./run.sh -t 2
 
 # Test large configuration
-./run.sh -t 1 -cn "test-large" -r 3 -s 100 -cc "mssql.cluster.mssql.8c16g.performance"
+./run.sh -t 1 -cn "test-large" -r 3 -s 100 -cc "mssql.cluster.mssql.8c16g.general"
 # ... run tests ...
 ./run.sh -t 2
 ```
@@ -342,7 +342,7 @@ cluster_name     = "my-mssql"
 environment_name = "prod"
 replicas         = 3
 storage_size_gb  = 100
-class_code       = "mssql.cluster.mssql.4c8g.performance"
+class_code       = "mssql.cluster.mssql.4c8g.general"
 
 # API credentials (recommended to use environment variables)
 api_key          = "your_api_key"
@@ -492,7 +492,7 @@ Create a custom tfvars file for complex changes:
 
 ```bash
 cat > custom-ops.tfvars << EOF
-class_code = "mssql.cluster.mssql.4c8g.performance"
+class_code = "mssql.cluster.mssql.4c8g.general"
 replicas = 3
 auto_backup_enabled = true
 backup_schedule = "0 2 * * *"
@@ -506,7 +506,7 @@ terraform apply -var-file=terraform.tfvars -var-file=custom-ops.tfvars
 ```bash
 # Save common commands as shell functions
 alias mssql-create='./run.sh -t 1 -cn "my-db" -r 3 -s 50'
-alias mssql-scale='./run.sh -t 4 -cc "mssql.cluster.mssql.4c8g.performance"'
+alias mssql-scale='./run.sh -t 4 -cc "mssql.cluster.mssql.4c8g.general"'
 alias mssql-destroy='./run.sh -t 2'
 ```
 

@@ -256,7 +256,7 @@ storage_size_gb = 20
 **Step 3: Upgrade to production (update terraform.tfvars)**
 ```hcl
 termination_policy = "DoNotTerminate"
-class_code = "mysql.replication.mysql.4c8g.performance"
+class_code = "mysql.replication.mysql.4c8g.general"
 replicas = 3
 storage_size_gb = 100
 single_zone = false  # Multi-zone for HA
@@ -264,7 +264,7 @@ single_zone = false  # Multi-zone for HA
 
 **Step 4: Apply production changes**
 ```bash
-./run.sh -t 4 -cc "mysql.replication.mysql.4c8g.performance"  # VScale
+./run.sh -t 4 -cc "mysql.replication.mysql.4c8g.general"  # VScale
 ./run.sh -t 5 -r 3                                            # HScale
 ./run.sh -t 8 -tp "DoNotTerminate"                            # Protect from deletion
 ```
@@ -278,7 +278,7 @@ single_zone = false  # Multi-zone for HA
 Using run.sh (fastest):
 ```bash
 # Scale up compute and replicas immediately
-./run.sh -t 4 -cc "mysql.replication.mysql.8c16g.performance"
+./run.sh -t 4 -cc "mysql.replication.mysql.8c16g.general"
 ./run.sh -t 5 -r 5
 ```
 
@@ -286,7 +286,7 @@ Or using tfvars overlay:
 ```bash
 # Create emergency-scale.tfvars
 cat > emergency-scale.tfvars << EOF
-class_code = "mysql.replication.mysql.8c16g.performance"
+class_code = "mysql.replication.mysql.8c16g.general"
 replicas = 5
 storage_size_gb = 200
 EOF

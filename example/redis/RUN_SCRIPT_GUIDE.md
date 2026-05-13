@@ -71,15 +71,15 @@ chmod +x run.sh
 
 ### Advanced Options
 
-| Parameter | Short | Long | Default | Description |
-|-----------|-------|------|---------|-------------|
-| Termination Policy | `-tp` | `--termination-policy` | `Delete` | Delete or DoNotTerminate |
-| Auto Backup | `-ab` | `--auto-backup` | `false` | Enable automatic backup |
-| Backup Method | `-bm` | `--backup-method` | - | Backup method (xtrabackup) |
+| Parameter | Short | Long | Default | Description                         |
+|-----------|-------|------|---------|-------------------------------------|
+| Termination Policy | `-tp` | `--termination-policy` | `Delete` | Delete or DoNotTerminate            |
+| Auto Backup | `-ab` | `--auto-backup` | `false` | Enable automatic backup             |
+| Backup Method | `-bm` | `--backup-method` | - | Backup method (aof)            |
 | Backup Schedule | `-bs` | `--backup-schedule` | - | Cron expression for backup schedule |
-| Retention Policy | `-rp` | `--retention-policy` | `LastOne` | Backup retention policy |
-| Custom Params | `-cp` | `--custom-params` | - | Custom parameters (JSON format) |
-| Param Template | `-ptn` | `--param-template` | - | Parameter template name |
+| Retention Policy | `-rp` | `--retention-policy` | `LastOne` | Backup retention policy             |
+| Custom Params | `-cp` | `--custom-params` | - | Custom parameters (JSON format)     |
+| Param Template | `-ptn` | `--param-template` | - | Parameter template name             |
 
 ### API Credentials
 
@@ -124,7 +124,7 @@ chmod +x run.sh
     -env "prod" \
     -r 3 \
     -s 100 \
-    -cc "pg.replication.pg.4c8g.performance" \
+    -cc "pg.replication.pg.4c8g.general" \
     -tp "DoNotTerminate"
 ```
 
@@ -140,7 +140,7 @@ chmod +x run.sh
 
 ```bash
 ./run.sh -t 4 \
-    -cc "pg.replication.pg.8c16g.performance"
+    -cc "pg.replication.pg.8c16g.general"
 ```
 
 **What this does:**
@@ -169,14 +169,14 @@ chmod +x run.sh
 ```bash
 ./run.sh -t 7 \
     -ab true \
-    -bm "xtrabackup" \
+    -bm "aof" \
     -bs "0 2 * * *" \
     -rp "7d"
 ```
 
 **What this does:**
 - Enables daily backups at 2:00 AM
-- Uses xtrabackup method for hot backups
+- Uses aof method for continuous backup
 - Retains backups for 7 days
 
 ---
@@ -257,7 +257,7 @@ chmod +x run.sh
 # Step 4: Enable backups
 ./run.sh -t 7 \
     -ab true \
-    -bm "xtrabackup" \
+    -bm "aof" \
     -bs "0 3 * * *"
 
 # Step 5: When done, destroy
@@ -280,7 +280,7 @@ chmod +x run.sh
 ./run.sh -t 2
 
 # Test large configuration
-./run.sh -t 1 -cn "test-large" -r 3 -s 100 -cc "pg.replication.pg.4c8g.performance"
+./run.sh -t 1 -cn "test-large" -r 3 -s 100 -cc "pg.replication.pg.4c8g.general"
 # ... run tests ...
 ./run.sh -t 2
 ```
@@ -342,7 +342,7 @@ cluster_name     = "my-pg"
 environment_name = "prod"
 replicas         = 3
 storage_size_gb  = 100
-class_code       = "pg.replication.pg.4c8g.performance"
+class_code       = "pg.replication.pg.4c8g.general"
 
 # API credentials (recommended to use environment variables)
 api_key          = "your_api_key"
@@ -492,7 +492,7 @@ Create a custom tfvars file for complex changes:
 
 ```bash
 cat > custom-ops.tfvars << EOF
-class_code = "pg.replication.pg.4c8g.performance"
+class_code = "pg.replication.pg.4c8g.general"
 replicas = 3
 auto_backup_enabled = true
 backup_schedule = "0 2 * * *"

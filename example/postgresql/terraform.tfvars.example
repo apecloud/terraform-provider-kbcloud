@@ -51,7 +51,7 @@ param_tpl_partition = "default"
 
 # Backup Configuration
 auto_backup_enabled       = true
-auto_backup_method        = "wal-g"
+auto_backup_method        = "wal-g-archive"
 backup_repo               = "my-backuprepo"
 retention_period          = "7d"
 retention_policy          = "LastOne"
