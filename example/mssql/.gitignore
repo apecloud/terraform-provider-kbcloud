@@ -25,5 +25,10 @@ override.tf.json
 .terraformrc
 terraform.rc
 
+# Vim swap files
+*.swp
+*.swo
+*~
+
 # eks cluster info file
 script/eks.info

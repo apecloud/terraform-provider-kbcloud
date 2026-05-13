@@ -87,7 +87,7 @@ variable "engine" {
   }
 }
 
-variable "version" {
+variable "engine_version" {
   description = "Engine version"
   type        = string
   default     = "3.9.0"

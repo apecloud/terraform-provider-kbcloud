@@ -21,7 +21,7 @@ project          = "kubeblocks-cloud-ns"
 
 # Engine Configuration
 engine       = "mongodb"
-version      = "7.2.12"
+engine_version = "7.2.12"
 mode         = "replication"  # standalone, replication, cluster, sentinel
 cluster_type = "Normal"
 

@@ -120,7 +120,7 @@ terraform_init_and_apply() {
         # macOS
         [[ -n "$CLUSTER_NAME" ]] && sed -i '' "s/^cluster_name.*/cluster_name = \"$CLUSTER_NAME\"/" terraform.tfvars
         [[ -n "$ENGINE" ]] && sed -i '' "s/^engine.*/engine = \"$ENGINE\"/" terraform.tfvars
-        [[ -n "$VERSION" ]] && sed -i '' "s/^version.*/version = \"$VERSION\"/" terraform.tfvars
+        [[ -n "$VERSION" ]] && sed -i '' "s/^engine_version.*/engine_version = \"$VERSION\"/" terraform.tfvars
         [[ -n "$MODE" ]] && sed -i '' "s/^mode.*/mode = \"$MODE\"/" terraform.tfvars
         [[ -n "$ENVIRONMENT" ]] && sed -i '' "s/^environment_name.*/environment_name = \"$ENVIRONMENT\"/" terraform.tfvars
         [[ -n "$REPLICAS" ]] && sed -i '' "s/^replicas.*/replicas = $REPLICAS/" terraform.tfvars
@@ -137,7 +137,7 @@ terraform_init_and_apply() {
         # Linux
         [[ -n "$CLUSTER_NAME" ]] && sed -i "s/^cluster_name.*/cluster_name = \"$CLUSTER_NAME\"/" terraform.tfvars
         [[ -n "$ENGINE" ]] && sed -i "s/^engine.*/engine = \"$ENGINE\"/" terraform.tfvars
-        [[ -n "$VERSION" ]] && sed -i "s/^version.*/version = \"$VERSION\"/" terraform.tfvars
+        [[ -n "$VERSION" ]] && sed -i "s/^engine_version.*/engine_version = \"$VERSION\"/" terraform.tfvars
         [[ -n "$MODE" ]] && sed -i "s/^mode.*/mode = \"$MODE\"/" terraform.tfvars
         [[ -n "$ENVIRONMENT" ]] && sed -i "s/^environment_name.*/environment_name = \"$ENVIRONMENT\"/" terraform.tfvars
         [[ -n "$REPLICAS" ]] && sed -i "s/^replicas.*/replicas = $REPLICAS/" terraform.tfvars
