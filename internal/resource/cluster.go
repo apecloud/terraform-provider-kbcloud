@@ -458,10 +458,30 @@ func (r *ClusterResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	// 3. Update backup policy if backup configuration changed
-	diags.Append(r.doUpdateBackupPolicy(ctx, &data)...)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
+	// IMPORTANT: Check operation type from environment variable to determine update behavior
+	operationType := os.Getenv("TF_VAR_operation_type")
+
+	if operationType == "backup" {
+		// Explicit backup operation: only update backup policy, skip cluster update
+		diags.Append(r.doUpdateBackupPolicy(ctx, &data, &stateData)...)
+		if diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+			return
+		}
+	} else if operationType == "termination" || operationType == "vscale" || operationType == "hscale" || operationType == "reconfigure" {
+		// Explicit cluster-level operation: only update cluster, skip backup policy
+		// This prevents unintended backup changes when user only wants to modify cluster settings
+	} else {
+		// No explicit operation type: independently check both cluster and backup changes
+		// Allow simultaneous updates if both have actual changes
+
+		// Update backup policy if there are backup-level changes
+		// Note: We always check backup changes unless explicitly skipped by operationType
+		diags.Append(r.doUpdateBackupPolicy(ctx, &data, &stateData)...)
+		if diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+			return
+		}
 	}
 
 	resp.Diagnostics.Append(diags...)
@@ -1168,7 +1188,7 @@ func (r *ClusterResource) doVolumeExpand(oldComponents []admin.ComponentItem, da
 }
 
 // doUpdateBackupPolicy updates the backup policy for a cluster
-func (r *ClusterResource) doUpdateBackupPolicy(ctx context.Context, data *mytypes.ClustersResourceModel) diag.Diagnostics {
+func (r *ClusterResource) doUpdateBackupPolicy(ctx context.Context, data *mytypes.ClustersResourceModel, stateData *mytypes.ClustersResourceModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	// Check if backup configuration is present
@@ -1180,6 +1200,57 @@ func (r *ClusterResource) doUpdateBackupPolicy(ctx context.Context, data *mytype
 	diags.Append(data.Backup.As(ctx, &backupModel, basetypes.ObjectAsOptions{})...)
 	if diags.HasError() {
 		return diags
+	}
+
+	// Get state backup model for comparison
+	var stateBackupModel mytypes.BackupResourceModel
+	if !stateData.Backup.IsNull() && !stateData.Backup.IsUnknown() {
+		stateDiags := stateData.Backup.As(ctx, &stateBackupModel, basetypes.ObjectAsOptions{})
+		if stateDiags.HasError() {
+			// If we can't read state backup, proceed with update to be safe
+		} else {
+			// Compare all backup fields to detect actual changes
+			hasBackupChange := false
+
+			if !backupModel.AutoBackup.Equal(stateBackupModel.AutoBackup) {
+				hasBackupChange = true
+			}
+			if !backupModel.AutoBackupMethod.Equal(stateBackupModel.AutoBackupMethod) {
+				hasBackupChange = true
+			}
+			if !backupModel.PitrEnabled.Equal(stateBackupModel.PitrEnabled) {
+				hasBackupChange = true
+			}
+			if !backupModel.ContinuousBackupMethod.Equal(stateBackupModel.ContinuousBackupMethod) {
+				hasBackupChange = true
+			}
+			if !backupModel.CronExpression.Equal(stateBackupModel.CronExpression) {
+				hasBackupChange = true
+			}
+			if !backupModel.RetentionPeriod.Equal(stateBackupModel.RetentionPeriod) {
+				hasBackupChange = true
+			}
+			if !backupModel.BackupRepo.Equal(stateBackupModel.BackupRepo) {
+				hasBackupChange = true
+			}
+			if !backupModel.RetentionPolicy.Equal(stateBackupModel.RetentionPolicy) {
+				hasBackupChange = true
+			}
+			if !backupModel.SnapshotVolumes.Equal(stateBackupModel.SnapshotVolumes) {
+				hasBackupChange = true
+			}
+			if !backupModel.IncrementalBackupEnabled.Equal(stateBackupModel.IncrementalBackupEnabled) {
+				hasBackupChange = true
+			}
+			if !backupModel.IncrementalCronExpression.Equal(stateBackupModel.IncrementalCronExpression) {
+				hasBackupChange = true
+			}
+
+			// No changes detected, skip API call
+			if !hasBackupChange {
+				return diags
+			}
+		}
 	}
 
 	// Build BackupPolicy object from backup model

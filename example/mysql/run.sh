@@ -138,6 +138,12 @@ terraform_init_and_apply() {
         [[ -n "$BACKUP_REPO" ]] && sed -i '' "s/^backup_repo.*/backup_repo = \"$BACKUP_REPO\"/" terraform.tfvars
         [[ -n "$TERMINATION_POLICY" ]] && sed -i '' "s/^termination_policy.*/termination_policy = \"$TERMINATION_POLICY\"/" terraform.tfvars
         
+        # Set backup defaults only for cluster creation
+        if [[ -z "$AUTO_BACKUP" ]]; then
+            AUTO_BACKUP="false"
+        fi
+        sed -i '' "s/^auto_backup.*/auto_backup = $AUTO_BACKUP/" terraform.tfvars
+        
         # API configuration (if provided)
         [[ -n "$API_URL" ]] && sed -i '' "s|^api_url = .*|api_url = \"$API_URL\"|" terraform.tfvars
         [[ -n "$API_KEY" ]] && sed -i '' "s/^# api_key.*/api_key = \"$API_KEY\"/" terraform.tfvars
@@ -158,6 +164,12 @@ terraform_init_and_apply() {
         [[ -n "$CLASS_CODE" ]] && sed -i "s/^class_code.*/class_code = \"$CLASS_CODE\"/" terraform.tfvars
         [[ -n "$BACKUP_REPO" ]] && sed -i "s/^backup_repo.*/backup_repo = \"$BACKUP_REPO\"/" terraform.tfvars
         [[ -n "$TERMINATION_POLICY" ]] && sed -i "s/^termination_policy.*/termination_policy = \"$TERMINATION_POLICY\"/" terraform.tfvars
+        
+        # Set backup defaults only for cluster creation
+        if [[ -z "$AUTO_BACKUP" ]]; then
+            AUTO_BACKUP="false"
+        fi
+        sed -i "s/^auto_backup.*/auto_backup = $AUTO_BACKUP/" terraform.tfvars
         
         # API configuration (if provided)
         [[ -n "$API_URL" ]] && sed -i "s|^api_url = .*|api_url = \"$API_URL\"|" terraform.tfvars
@@ -384,9 +396,11 @@ terraform_backup() {
         exit 1
     fi
     
-    # Create backup tfvars
+    # Create backup tfvars with operation type marker
     cat > ops-examples/backup-operation.tfvars << EOF
 # Backup Configuration Operation
+# Operation type marker: this tells the provider to only process backup-related changes
+operation_type = "backup"
 auto_backup = $AUTO_BACKUP
 EOF
     
@@ -405,11 +419,15 @@ EOF
     echo ""
     
     echo "Running: terraform plan"
+    # Set environment variable to indicate operation type
+    export TF_VAR_operation_type="backup"
     terraform plan -var-file=terraform.tfvars -var-file=ops-examples/backup-operation.tfvars
     
     echo ""
     read -p "Apply changes? (yes/no): " confirm
     if [[ "$confirm" == "yes" ]]; then
+        # Set environment variable to indicate operation type
+        export TF_VAR_operation_type="backup"
         terraform apply -var-file=terraform.tfvars -var-file=ops-examples/backup-operation.tfvars
         echo "Backup configuration completed!"
     else
@@ -433,22 +451,34 @@ terraform_termination() {
         exit 1
     fi
     
-    # Create termination tfvars
+    # WARNING: This operation may affect backup configuration if terraform.tfvars contains outdated defaults
+    echo ""
+    echo "⚠️  IMPORTANT: Please ensure terraform.tfvars reflects current cluster state"
+    echo "   If backup was previously enabled, make sure these fields match:"
+    grep -E "auto_backup|cron_expression|retention" terraform.tfvars || true
+    echo ""
+    
+    # Create termination tfvars with operation type marker
     cat > ops-examples/termination-operation.tfvars << EOF
 # Termination Policy Operation
+# Operation type marker: this tells the provider to only process cluster-level changes
+operation_type = "termination"
 termination_policy = "$TERMINATION_POLICY"
 EOF
     
-    echo ""
     echo "New Termination Policy: $TERMINATION_POLICY"
     echo ""
     
     echo "Running: terraform plan"
+    # Set environment variable to indicate operation type
+    export TF_VAR_operation_type="termination"
     terraform plan -var-file=terraform.tfvars -var-file=ops-examples/termination-operation.tfvars
     
     echo ""
     read -p "Apply changes? (yes/no): " confirm
     if [[ "$confirm" == "yes" ]]; then
+        # Set environment variable to indicate operation type
+        export TF_VAR_operation_type="termination"
         terraform apply -var-file=terraform.tfvars -var-file=ops-examples/termination-operation.tfvars
         echo "Termination policy updated!"
     else
@@ -475,7 +505,8 @@ main() {
     local STORAGE_SIZE="$DEFAULT_STORAGE_SIZE"
     local CLASS_CODE="$DEFAULT_CLASS_CODE"
     local TERMINATION_POLICY="$DEFAULT_TERMINATION_POLICY"
-    local AUTO_BACKUP="false"
+    # Backup fields: only set defaults for cluster creation (type 1), otherwise leave empty
+    local AUTO_BACKUP=""
     local BACKUP_METHOD=""
     local BACKUP_REPO=""
     local BACKUP_SCHEDULE=""
