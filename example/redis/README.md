@@ -146,7 +146,7 @@ terraform apply \
   -var-file=ops-examples/backup-modify.tfvars
 ```
 
-**What changes:** Enables daily backups at 2:00 AM with RDB snapshots.
+**What changes:** Enables daily backups at 2:00 AM with AOF method.
 
 See [ops-examples/README.md](ops-examples/README.md#4-backup-operations) for more details.
 

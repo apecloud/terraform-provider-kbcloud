@@ -135,33 +135,34 @@ Configure automatic backups, PITR, and retention policies.
 #### Enable Automatic Backup
 
 ```bash
-terraform apply -var-file=terraform.tfvars -var-file=ops-examples/backup-enable-auto.tfvars
+terraform apply -var-file=terraform.tfvars -var-file=ops-examples/backup-modify.tfvars
 ```
 
 **What happens:**
 - Enables daily backups at 2:00 AM
 - Uses `xtrabackup` method
-- Retains last backup only
+- Retains last backup for 7 days
 
 #### Enable Point-in-Time Recovery (PITR)
 
-Edit the backup tfvars:
+Edit the backup tfvars file:
 ```bash
-cat > ops-examples/backup-enable-pitr.tfvars << EOF
+cat > ops-examples/backup-pitr.tfvars << EOF
 auto_backup              = true
 auto_backup_method       = "xtrabackup"
 pitr_enabled             = true
-continuous_backup_method = "archive-binlog"
+continuous_backup_method = "binlog"
 EOF
 
-terraform apply -var-file=terraform.tfvars -var-file=ops-examples/backup-enable-pitr.tfvars
+terraform apply -var-file=terraform.tfvars -var-file=ops-examples/backup-pitr.tfvars
 ```
 
 #### Change Retention Policy
 
 ```bash
 cat > ops-examples/backup-retention.tfvars << EOF
-retention_policy = "7d"  # Keep backups for 7 days
+retention_period = "30d"    # Keep backups for 30 days
+retention_policy = "LastThree"  # Keep last 3 backups
 EOF
 
 terraform apply -var-file=terraform.tfvars -var-file=ops-examples/backup-retention.tfvars
@@ -211,7 +212,8 @@ terraform apply -var-file=terraform.tfvars \
   -var='auto_backup=true' \
   -var='auto_backup_method=xtrabackup' \
   -var='cron_expression=0 2 * * *' \
-  -var='retention_policy=7d'
+  -var='retention_period=7d' \
+  -var='retention_policy=LastOne'
 
 # 4. Protect from deletion
 terraform apply -var-file=terraform.tfvars -var='termination_policy=DoNotTerminate'

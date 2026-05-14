@@ -289,9 +289,17 @@ func (r *ClusterResource) mergeClusterState(ctx context.Context, data *mytypes.C
 
 func (r *ClusterResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data mytypes.ClustersResourceModel
+	var stateData mytypes.ClustersResourceModel
 
 	// Read Terraform plan data into the model
 	diags := req.Plan.Get(ctx, &data)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Read Terraform prior state data to detect actual changes
+	diags = req.State.Get(ctx, &stateData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -324,41 +332,61 @@ func (r *ClusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		oldComponents []admin.ComponentItem
 	)
 
-	// 1. Update cluster by UpdateAPI
-	if r.client.IsAdminClient() {
-		_, apiResp, err := admin.NewClusterApi(r.client.AdminClient()).PatchCluster(r.client.AdminCtx(), data.OrgName.ValueString(), data.Name.ValueString(), pointer.ValueOf(body))
-		if err != nil {
-			errDetail := utils.GetRespErrorDetail(apiResp)
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update cluster, got error:%s %s", err.Error(), errDetail))
-			return
-		}
-		if !utils.IsHTTPSuccess(apiResp) {
-			errDetail := utils.GetRespErrorDetail(apiResp)
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update cluster, got error: %s", errDetail))
-			return
-		}
-	} else {
-		apiBody := kbcloud.ClusterUpdate{}
-		clusterBytes, err = json.Marshal(body)
-		if err != nil {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to marshal cluster body, got error: %s", err.Error()))
-			return
-		}
-		if err := json.Unmarshal(clusterBytes, &apiBody); err != nil {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to unmarshal cluster body, got error:%s", err.Error()))
-			return
-		}
+	// 1. Update cluster by UpdateAPI only if there are cluster-level changes
+	// Compare plan values with state values to detect actual changes
+	hasClusterUpdate := false
 
-		_, apiResp, err := kbcloud.NewClusterApi(r.client.Client()).PatchCluster(r.client.Ctx(), data.OrgName.ValueString(), data.Name.ValueString(), apiBody)
-		if err != nil {
-			errDetail := utils.GetRespErrorDetail(apiResp)
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update cluster, got error:%s %s", err.Error(), errDetail))
-			return
-		}
-		if !utils.IsHTTPSuccess(apiResp) {
-			errDetail := utils.GetRespErrorDetail(apiResp)
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update cluster, got error %s", errDetail))
-			return
+	// Check TerminationPolicy change
+	if !data.TerminationPolicy.Equal(stateData.TerminationPolicy) {
+		hasClusterUpdate = true
+	}
+
+	// Check DisplayName change
+	if !data.DisplayName.Equal(stateData.DisplayName) {
+		hasClusterUpdate = true
+	}
+
+	// Check MaintainceWindow change
+	if !data.MaintainceWindow.Equal(stateData.MaintainceWindow) {
+		hasClusterUpdate = true
+	}
+
+	if hasClusterUpdate {
+		if r.client.IsAdminClient() {
+			_, apiResp, err := admin.NewClusterApi(r.client.AdminClient()).PatchCluster(r.client.AdminCtx(), data.OrgName.ValueString(), data.Name.ValueString(), pointer.ValueOf(body))
+			if err != nil {
+				errDetail := utils.GetRespErrorDetail(apiResp)
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update cluster, got error:%s %s", err.Error(), errDetail))
+				return
+			}
+			if !utils.IsHTTPSuccess(apiResp) {
+				errDetail := utils.GetRespErrorDetail(apiResp)
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update cluster, got error: %s", errDetail))
+				return
+			}
+		} else {
+			apiBody := kbcloud.ClusterUpdate{}
+			clusterBytes, err = json.Marshal(body)
+			if err != nil {
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to marshal cluster body, got error: %s", err.Error()))
+				return
+			}
+			if err := json.Unmarshal(clusterBytes, &apiBody); err != nil {
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to unmarshal cluster body, got error:%s", err.Error()))
+				return
+			}
+
+			_, apiResp, err := kbcloud.NewClusterApi(r.client.Client()).PatchCluster(r.client.Ctx(), data.OrgName.ValueString(), data.Name.ValueString(), apiBody)
+			if err != nil {
+				errDetail := utils.GetRespErrorDetail(apiResp)
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update cluster, got error:%s %s", err.Error(), errDetail))
+				return
+			}
+			if !utils.IsHTTPSuccess(apiResp) {
+				errDetail := utils.GetRespErrorDetail(apiResp)
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update cluster, got error %s", errDetail))
+				return
+			}
 		}
 	}
 
