@@ -1,5 +1,5 @@
 # ============================================================================
-# Backup Operations Example Configuration for PostgreSQL
+# Backup Operations Example Configuration for MySQL
 # ============================================================================
 # This file demonstrates various backup configuration options including:
 # - Automatic backup enablement
@@ -16,9 +16,9 @@
 # ============================================================================
 # Uncomment to enable basic automatic backup with default settings
 # ============================================================================
-# auto_backup = true
-# auto_backup_method = "pgbackrest"
-# cron_expression = "0 2 * * *"  # Daily at 2:00 AM UTC
+auto_backup = true
+auto_backup_method = "xtrabackup"
+cron_expression = "0 2 * * *"  # Daily at 2:00 AM UTC
 
 # ============================================================================
 # Operation 2: Configure Backup Retention
@@ -37,8 +37,8 @@
 # ============================================================================
 # Uncomment to enable continuous backup for PITR
 # ============================================================================
-pitr_enabled = true
-continuous_backup_method = "wal-g-archive"
+# pitr_enabled = true
+# continuous_backup_method = "binlog"  # Use binary log for continuous backup
 
 # ============================================================================
 # Operation 4: Enable Volume Snapshots
@@ -76,17 +76,17 @@ continuous_backup_method = "wal-g-archive"
 # Use Case 1: Production Environment - Full backup daily + PITR
 # --------------------------------------------------------------------------
 # auto_backup = true
-# auto_backup_method = "pgbackrest"
+# auto_backup_method = "xtrabackup"
 # cron_expression = "0 2 * * *"
 # retention_period = "30d"
 # retention_policy = "LastThree"
 # pitr_enabled = true
-# continuous_backup_method = "wal-g-archive"
+# continuous_backup_method = "binlog"
 
 # Use Case 2: Development Environment - Weekly backup only
 # --------------------------------------------------------------------------
 # auto_backup = true
-# auto_backup_method = "pgbackrest"
+# auto_backup_method = "xtrabackup"
 # cron_expression = "0 3 * * 0"  # Sunday at 3:00 AM
 # retention_period = "7d"
 # retention_policy = "LastOne"
@@ -95,7 +95,7 @@ continuous_backup_method = "wal-g-archive"
 # Use Case 3: High-Frequency Backup with Incremental
 # --------------------------------------------------------------------------
 # auto_backup = true
-# auto_backup_method = "pgbackrest"
+# auto_backup_method = "xtrabackup"
 # cron_expression = "0 0 * * *"  # Daily at midnight
 # incremental_backup_enabled = true
 # incremental_cron_expression = "0 */4 * * *"  # Every 4 hours

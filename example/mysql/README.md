@@ -27,10 +27,11 @@ This directory contains various operational examples for MySQL clusters, demonst
 - Triggers Reconfigure OpsRequest
 
 ### 5. Backup Configuration Changes
-**File**: `backup-ops.tf`
+**Directory**: `ops-examples/backup-modify.tfvars`
 - Shows how to modify backup policies
 - Enable/disable PITR
 - Change retention periods
+- Configure incremental backups
 
 ### 6. Termination Policies
 **File**: `termination.tf`
