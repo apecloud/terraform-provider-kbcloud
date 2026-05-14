@@ -319,6 +319,12 @@ func ClustersResourceSchema() schema.Schema {
 							Optional:    true,
 							Description: "config spec name",
 						},
+
+						"config_file_name": schema.StringAttribute{
+							Computed:    true,
+							Optional:    true,
+							Description: "configuration file name for reconfigure operation (e.g., my.cnf, postgresql.conf)",
+						},
 					},
 				},
 				Computed:    true,

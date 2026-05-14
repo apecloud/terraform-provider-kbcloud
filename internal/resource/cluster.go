@@ -457,10 +457,31 @@ func (r *ClusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		}
 	}
 
-	// 3. Update backup policy if backup configuration changed
+	// 3. Update cluster parameters via Reconfigure API if InitOptions or ParamTpls changed
 	// IMPORTANT: Check operation type from environment variable to determine update behavior
 	operationType := os.Getenv("TF_VAR_operation_type")
 
+	if operationType == "reconfigure" {
+		// Explicit reconfigure operation: only update cluster parameters
+		diags.Append(r.doReconfigure(ctx, &data, &stateData)...)
+		if diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+			return
+		}
+	} else if operationType == "backup" {
+		// Explicit backup operation: skip reconfigure
+	} else if operationType == "termination" || operationType == "vscale" || operationType == "hscale" {
+		// Explicit cluster-level operation: skip reconfigure unless it's specifically "reconfigure"
+	} else {
+		// No explicit operation type: check if reconfigure is needed based on actual changes
+		diags.Append(r.doReconfigure(ctx, &data, &stateData)...)
+		if diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+			return
+		}
+	}
+
+	// 4. Update backup policy if backup configuration changed
 	if operationType == "backup" {
 		// Explicit backup operation: only update backup policy, skip cluster update
 		diags.Append(r.doUpdateBackupPolicy(ctx, &data, &stateData)...)
@@ -1366,4 +1387,183 @@ func (r *ClusterResource) doUpdateBackupPolicy(ctx context.Context, data *mytype
 	}
 
 	return diags
+}
+
+// doReconfigure updates cluster parameters via Reconfigure OpsRequest API
+func (r *ClusterResource) doReconfigure(ctx context.Context, data *mytypes.ClustersResourceModel, stateData *mytypes.ClustersResourceModel) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	// Check if ParamTpls or InitOptions have changed
+	hasParamTplChange := !data.ParamTpls.Equal(stateData.ParamTpls)
+	hasInitOptionsChange := !data.InitOptions.Equal(stateData.InitOptions)
+
+	if !hasParamTplChange && !hasInitOptionsChange {
+		return diags
+	}
+
+	// Get components to determine which component to reconfigure
+	var components []*mytypes.ComponentsResourceModel
+	if !data.Components.IsNull() && !data.Components.IsUnknown() {
+		diags.Append(data.Components.ElementsAs(ctx, &components, false)...)
+		if diags.HasError() {
+			return diags
+		}
+	}
+
+	if len(components) == 0 {
+		diags.AddWarning("Reconfigure Warning", "No components found, skipping reconfigure operation")
+		return diags
+	}
+
+	// Use the first component for reconfiguration
+	component := components[0]
+	componentName := component.Component.ValueString()
+
+	// Get config file name from InitOptions if provided, otherwise use default logic
+	var configFileName string
+	if hasInitOptionsChange && !data.InitOptions.IsNull() && !data.InitOptions.IsUnknown() {
+		var initOptionsList []*mytypes.InitOptionsResourceModel
+		diags.Append(data.InitOptions.ElementsAs(ctx, &initOptionsList, false)...)
+		if diags.HasError() {
+			return diags
+		}
+
+		// Try to get config_file_name from the first init_options entry
+		for _, initOpt := range initOptionsList {
+			if !initOpt.ConfigFileName.IsNull() && !initOpt.ConfigFileName.IsUnknown() {
+				configFileName = initOpt.ConfigFileName.ValueString()
+				break
+			}
+		}
+	}
+
+	// If config_file_name is not provided in InitOptions, use default logic based on engine type
+	if configFileName == "" {
+		configFileName = determineConfigFileName(data.Engine.ValueString(), componentName)
+	}
+
+	// Build ReconfigureCreate request
+	reconfigureBody := kbcloud.ReconfigureCreate{
+		Component:      componentName,
+		ConfigFileName: &configFileName,
+	}
+
+	// Handle InitOptions - convert init_params to Parameters map
+	if hasInitOptionsChange && !data.InitOptions.IsNull() && !data.InitOptions.IsUnknown() {
+		var initOptionsList []*mytypes.InitOptionsResourceModel
+		diags.Append(data.InitOptions.ElementsAs(ctx, &initOptionsList, false)...)
+		if diags.HasError() {
+			return diags
+		}
+
+		// Merge all init_options into a single Parameters map
+		parametersMap := make(map[string]string)
+		for _, initOpt := range initOptionsList {
+			if !initOpt.InitParams.IsNull() && !initOpt.InitParams.IsUnknown() {
+				var paramsMap map[string]string
+				paramDiags := initOpt.InitParams.ElementsAs(ctx, &paramsMap, false)
+				if paramDiags.HasError() {
+					diags.Append(paramDiags...)
+					continue
+				}
+				for k, v := range paramsMap {
+					parametersMap[k] = v
+				}
+			}
+		}
+
+		if len(parametersMap) > 0 {
+			reconfigureBody.SetParameters(parametersMap)
+		}
+	}
+
+	// Note: ParamTpls changes would typically require updating the cluster's parameter template
+	// This is handled through the PatchCluster API in clusterResourceToClusterUpdate
+	// For now, we focus on InitOptions (custom parameters) which use the Reconfigure API
+
+	// Call ReconfigureCluster API
+	var apiResp *http.Response
+	var err error
+
+	if r.client.IsAdminClient() {
+		// Admin client uses admin package types
+		adminBody := admin.ReconfigureCreate{
+			Component:      componentName,
+			ConfigFileName: &configFileName,
+		}
+		if params, ok := reconfigureBody.GetParametersOk(); ok {
+			adminBody.SetParameters(*params)
+		}
+		_, apiResp, err = admin.NewOpsrequestApi(r.client.AdminClient()).ReconfigureCluster(
+			r.client.AdminCtx(),
+			data.OrgName.ValueString(),
+			data.Name.ValueString(),
+			adminBody,
+		)
+	} else {
+		_, apiResp, err = kbcloud.NewOpsrequestApi(r.client.Client()).ReconfigureCluster(
+			r.client.Ctx(),
+			data.OrgName.ValueString(),
+			data.Name.ValueString(),
+			reconfigureBody,
+		)
+	}
+
+	if err != nil {
+		errDetail := utils.GetRespErrorDetail(apiResp)
+		diags.AddError("Client Error", fmt.Sprintf("Unable to reconfigure cluster, got error: %s %s", err.Error(), errDetail))
+		return diags
+	}
+
+	if !utils.IsHTTPSuccess(apiResp) {
+		errDetail := utils.GetRespErrorDetail(apiResp)
+		diags.AddError("Client Error", fmt.Sprintf("Unable to reconfigure cluster, got error: %s", errDetail))
+		return diags
+	}
+
+	return diags
+}
+
+// determineConfigFileName determines the configuration file name based on engine and component
+func determineConfigFileName(engine string, component string) string {
+	// Config file names for different engines (from engineoption/*.json)
+	// These are the configFileName values defined in the parameters.configSpecs
+	configFileNames := map[string]map[string]string{
+		"mysql": {
+			"mysql": "my.cnf",
+		},
+		"postgresql": {
+			"postgresql": "postgresql.conf",
+		},
+		"mongodb": {
+			"mongodb":             "mongodb.conf",
+			"mongo-shard":         "mongodb.conf",
+			"mongo-config-server": "mongodb.conf",
+			"mongo-mongos":        "mongos.conf",
+		},
+		"redis": {
+			"redis":          "redis.conf",
+			"redis-cluster":  "redis.conf",
+			"redis-sentinel": "redis.conf",
+		},
+		"kafka": {
+			"kafka-combine":    "server.properties",
+			"kafka-broker":     "server.properties",
+			"kafka-controller": "server.properties",
+			"kafka-zookeeper":  "zookeeper.properties",
+		},
+		"mssql": {
+			"mssql": "mssql.conf",
+		},
+	}
+
+	// Try to find specific config file name
+	if engineConfigs, ok := configFileNames[engine]; ok {
+		if configName, ok := engineConfigs[component]; ok {
+			return configName
+		}
+	}
+
+	// Fallback: use component name with .conf suffix
+	return component + ".conf"
 }

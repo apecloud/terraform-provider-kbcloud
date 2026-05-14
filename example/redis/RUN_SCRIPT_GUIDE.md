@@ -77,9 +77,11 @@ chmod +x run.sh
 | Auto Backup | `-ab` | `--auto-backup` | `false` | Enable automatic backup             |
 | Backup Method | `-bm` | `--backup-method` | - | Backup method (aof)            |
 | Backup Schedule | `-bs` | `--backup-schedule` | - | Cron expression for backup schedule |
-| Retention Policy | `-rp` | `--retention-policy` | `LastOne` | Backup retention policy             |
+| Retention Policy | `-rp` | `--retention-policy` | `LastOne` | Backup retention policy |
 | Custom Params | `-cp` | `--custom-params` | - | Custom parameters (JSON format)     |
 | Param Template | `-ptn` | `--param-template` | - | Parameter template name             |
+| Config File Name | `-cfn` | `--config-file-name` | - | Configuration file name for reconfigure (e.g., redis.conf) |
+| Component | `-comp` | `--component` | - | Component name for reconfigure (if empty, uses first component) |
 
 ### API Credentials
 

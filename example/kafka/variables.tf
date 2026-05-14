@@ -303,6 +303,34 @@ variable "controller_class_code" {
 }
 
 # ============================================================================
+# Custom Parameters
+# ============================================================================
+
+variable "custom_params" {
+  description = "Custom initialization parameters"
+  type = map(string)
+  default = {}
+}
+
+variable "spec_name" {
+  description = "Configuration spec name"
+  type        = string
+  default     = "kafka-server-config"
+}
+
+variable "config_file_name" {
+  description = "Configuration file name for reconfigure operation (e.g., server.properties)"
+  type        = string
+  default     = ""
+}
+
+variable "reconfigure_component" {
+  description = "Component name for reconfigure operation (if empty, uses the first component from components list)"
+  type        = string
+  default     = ""
+}
+
+# ============================================================================
 # Backup Configuration
 # ============================================================================
 

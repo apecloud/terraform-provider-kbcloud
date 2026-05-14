@@ -2,7 +2,7 @@ terraform {
   required_providers {
     kbcloud = {
       source  = "registry.terraform.io/apecloud/kbcloud"
-      version = "2.2.0-beta.1"
+      version = "2.2.0-beta.2"
     }
   }
 }
@@ -173,6 +173,15 @@ resource "kbcloud_cluster" "my_kafka" {
   ]
 
   param_tpls = []
+
+  init_options = [
+    {
+      component        = var.reconfigure_component != "" ? var.reconfigure_component : (var.mode == "combined" ? var.combined_component_name : var.broker_component_name)
+      init_params      = var.custom_params
+      spec_name        = var.spec_name
+      config_file_name = var.config_file_name != "" ? var.config_file_name : null
+    }
+  ]
 
   backup = {
     auto_backup                 = var.auto_backup

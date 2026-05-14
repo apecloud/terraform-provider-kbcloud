@@ -65,6 +65,8 @@ Options:
     
     -cp, --custom-params                    Custom parameters (JSON format)
     -ptn, --param-template                  Parameter template name
+    -cfn, --config-file-name                Configuration file name for reconfigure (e.g., my.cnf)
+    -comp, --component                      Component name for reconfigure (if empty, uses first component)
     
     -api-url                                API URL
     -api-key                                API key
@@ -98,6 +100,16 @@ Examples:
         -bm "xtrabackup" \\
         -bs "0 2 * * *" \\
         -rpd "7d"
+    
+    # Reconfigure with custom config file name
+    ./run.sh -t 6 \\
+        -cp '{"binlog_expire_logs_seconds": "604801"}' \\
+        -cfn "my.cnf"
+    
+    # Reconfigure specific component (for multi-component clusters)
+    ./run.sh -t 6 \\
+        -comp "mysql" \\
+        -cp '{"max_connections": "200"}'
     
     # Destroy cluster
     ./run.sh -t 2
@@ -142,7 +154,7 @@ terraform_init_and_apply() {
         if [[ -z "$AUTO_BACKUP" ]]; then
             AUTO_BACKUP="false"
         fi
-        sed -i '' "s/^auto_backup.*/auto_backup = $AUTO_BACKUP/" terraform.tfvars
+        sed -i '' "s/^auto_backup        = .*/auto_backup = $AUTO_BACKUP/" terraform.tfvars
         
         # API configuration (if provided)
         [[ -n "$API_URL" ]] && sed -i '' "s|^api_url = .*|api_url = \"$API_URL\"|" terraform.tfvars
@@ -169,7 +181,7 @@ terraform_init_and_apply() {
         if [[ -z "$AUTO_BACKUP" ]]; then
             AUTO_BACKUP="false"
         fi
-        sed -i "s/^auto_backup.*/auto_backup = $AUTO_BACKUP/" terraform.tfvars
+        sed -i "s/^auto_backup        = .*/auto_backup = $AUTO_BACKUP/" terraform.tfvars
         
         # API configuration (if provided)
         [[ -n "$API_URL" ]] && sed -i "s|^api_url = .*|api_url = \"$API_URL\"|" terraform.tfvars
@@ -363,16 +375,28 @@ EOF
         echo "param_tpl_name = \"$PARAM_TEMPLATE\"" >> ops-examples/reconfigure-operation.tfvars
     fi
     
+    if [[ -n "$CONFIG_FILE_NAME" ]]; then
+        echo "config_file_name = \"$CONFIG_FILE_NAME\"" >> ops-examples/reconfigure-operation.tfvars
+    fi
+    
+    if [[ -n "$RECONFIGURE_COMPONENT" ]]; then
+        echo "reconfigure_component = \"$RECONFIGURE_COMPONENT\"" >> ops-examples/reconfigure-operation.tfvars
+    fi
+    
     echo ""
     echo "Reconfiguration applied."
     echo ""
     
     echo "Running: terraform plan"
+    # Set environment variable to indicate operation type
+    export TF_VAR_operation_type="reconfigure"
     terraform plan -var-file=terraform.tfvars -var-file=ops-examples/reconfigure-operation.tfvars
     
     echo ""
     read -p "Apply changes? (yes/no): " confirm
     if [[ "$confirm" == "yes" ]]; then
+        # Set environment variable to indicate operation type
+        export TF_VAR_operation_type="reconfigure"
         terraform apply -var-file=terraform.tfvars -var-file=ops-examples/reconfigure-operation.tfvars
         echo "Reconfiguration completed!"
     else
@@ -514,6 +538,8 @@ main() {
     local RETENTION_POLICY=""
     local CUSTOM_PARAMS=""
     local PARAM_TEMPLATE=""
+    local CONFIG_FILE_NAME=""
+    local RECONFIGURE_COMPONENT=""
     local API_URL=""
     local API_KEY=""
     local API_SECRET=""
@@ -651,6 +677,14 @@ parse_command_line() {
                 ;;
             -ptn|--param-template)
                 PARAM_TEMPLATE="${2:-}"
+                shift
+                ;;
+            -cfn|--config-file-name)
+                CONFIG_FILE_NAME="${2:-}"
+                shift
+                ;;
+            -comp|--component)
+                RECONFIGURE_COMPONENT="${2:-}"
                 shift
                 ;;
             -api-url)

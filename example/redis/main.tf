@@ -2,7 +2,7 @@ terraform {
   required_providers {
     kbcloud = {
       source  = "registry.terraform.io/apecloud/kbcloud"
-      version = "2.2.0-beta.1"
+      version = "2.2.0-beta.2"
     }
   }
 }
@@ -114,6 +114,15 @@ resource "kbcloud_cluster" "my_redis" {
       component           = var.component_name
       param_tpl_name      = var.param_tpl_name
       param_tpl_partition = var.param_tpl_partition
+    }
+  ]
+
+  init_options = [
+    {
+      component        = var.reconfigure_component != "" ? var.reconfigure_component : var.component_name
+      init_params      = var.custom_params
+      spec_name        = var.spec_name
+      config_file_name = var.config_file_name != "" ? var.config_file_name : null
     }
   ]
 

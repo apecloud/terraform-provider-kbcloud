@@ -80,6 +80,8 @@ chmod +x run.sh
 | Retention Policy | `-rp` | `--retention-policy` | `LastOne` | Backup retention policy |
 | Custom Params | `-cp` | `--custom-params` | - | Custom parameters (JSON format) |
 | Param Template | `-ptn` | `--param-template` | - | Parameter template name |
+| Config File Name | `-cfn` | `--config-file-name` | - | Configuration file name for reconfigure (e.g., mssql.conf) |
+| Component | `-comp` | `--component` | - | Component name for reconfigure (if empty, uses first component) |
 
 ### API Credentials
 
