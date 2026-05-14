@@ -66,6 +66,15 @@ terraform apply -var-file=terraform.tfvars -var-file=ops-examples/backup-modify.
 ```
 - See [ops-examples/backup-modify.tfvars](mysql/ops-examples/backup-modify.tfvars)
 
+#### 💿 Volume Expansion
+Expand storage for existing volumes:
+```bash
+./run.sh -t 9 -s 100 -vct "data"
+# or
+terraform apply -var-file=terraform.tfvars -var-file=ops-examples/volume-expand-operation.tfvars
+```
+- See [ops-examples/volume-expand-operation.tfvars](mysql/ops-examples/volume-expand-operation.tfvars)
+
 #### 🔒 Termination Policies
 Control cluster deletion behavior:
 ```bash

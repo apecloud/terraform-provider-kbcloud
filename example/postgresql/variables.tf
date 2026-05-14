@@ -165,6 +165,12 @@ variable "storage_size_gb" {
   default     = 20
 }
 
+variable "volume_claim_template_name" {
+  description = "Volume claim template name (e.g., data, log)"
+  type        = string
+  default     = "data"
+}
+
 variable "storage_class" {
   description = "Storage class name"
   type        = string
@@ -216,10 +222,7 @@ variable "param_tpl_partition" {
 variable "custom_params" {
   description = "Custom initialization parameters"
   type = map(string)
-  default = {
-    "timezone"     = "Asia/Shanghai"
-    "log_timezone" = "Asia/Shanghai"
-  }
+  default = {}
 }
 
 variable "spec_name" {

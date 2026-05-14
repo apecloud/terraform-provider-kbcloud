@@ -39,6 +39,7 @@ maintenance_weekdays   = "1,2,3,4,5,6,7"
 component_name = "redis"
 replicas       = 2
 storage_size_gb = 30
+volume_claim_template_name = "data"
 storage_class  = "apelocal-rawdisk-xfs"
 class_code     = "redis.replication.redis.2c2g.general"
 

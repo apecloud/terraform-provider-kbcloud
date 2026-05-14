@@ -33,7 +33,13 @@ This directory contains various operational examples for MySQL clusters, demonst
 - Change retention periods
 - Configure incremental backups
 
-### 6. Termination Policies
+### 6. Volume Expansion
+**Directory**: `ops-examples/volume-expand-operation.tfvars`
+- Shows how to expand storage for existing volumes
+- Specify which PVC to expand using `volume_claim_template_name`
+- Storage can only be increased, not decreased
+
+### 7. Termination Policies
 **File**: `termination.tf`
 - Demonstrates Delete policy (allows terraform destroy)
 - Demonstrates DoNotTerminate policy (prevents accidental deletion)
@@ -78,6 +84,28 @@ To reconfigure parameters:
 1. Update `param_tpl_name` or `param_tpl_id` in param_tpls block
 2. Or modify `init_params` in init_options
 3. Run `terraform apply` to trigger Reconfigure OpsRequest
+
+### Volume Expansion
+To expand storage:
+1. Modify the `storage_size_gb` value in terraform.tfvars
+2. Optionally specify `volume_claim_template_name` (default: "data")
+3. Run `terraform apply` to trigger VolumeExpand OpsRequest
+
+Example change:
+```hcl
+# Before
+storage_size_gb = 20
+volume_claim_template_name = "data"
+
+# After
+storage_size_gb = 100
+volume_claim_template_name = "data"
+```
+
+Or using ops-examples overlay:
+```bash
+terraform apply -var-file=terraform.tfvars -var-file=ops-examples/volume-expand-operation.tfvars
+```
 
 ## Important Notes
 

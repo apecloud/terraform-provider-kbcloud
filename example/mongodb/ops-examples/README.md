@@ -1,165 +1,332 @@
-# MongoDB Operations Examples
+# MySQL Operations Examples
 
-This directory contains example configurations for common MongoDB cluster operations.
+This directory contains Terraform variable files (`.tfvars`) that demonstrate different operations for MySQL clusters.
 
-## 📋 Available Operations
+## 📋 Prerequisites
 
-### 1. Vertical Scaling (VScale)
-**File:** `vscale-up-compute.tfvars`
+1. Copy the example configuration file:
+   ```bash
+   cp terraform.tfvars.example terraform.tfvars
+   ```
 
-Scale compute resources (CPU/Memory) and/or storage:
+2. Edit `terraform.tfvars` and fill in your sensitive information:
+   ```hcl
+   api_key    = "your_actual_api_key"
+   api_secret = "your_actual_api_secret"
+   admin_api_key    = "your_admin_api_key"
+   admin_api_secret = "your_admin_api_secret"
+   ```
 
-```bash
-# Scale up from 1c2g to 2c4g
-terraform apply \
-  -var-file=terraform.tfvars \
-  -var-file=ops-examples/vscale-up-compute.tfvars
-```
-
-### 2. Horizontal Scaling (HScale)
-**File:** `hscale-out.tfvars`
-
-Add or remove replicas:
-
-```bash
-# Scale out from 2 to 3 replicas
-terraform apply \
-  -var-file=terraform.tfvars \
-  -var-file=ops-examples/hscale-out.tfvars
-```
-
-### 3. Parameter Reconfiguration
-**File:** `reconfigure-params.tfvars`
-
-Modify database parameters:
-
-```bash
-# Change parameter template
-terraform apply \
-  -var-file=terraform.tfvars \
-  -var-file=ops-examples/reconfigure-params.tfvars
-```
-
-### 4. Backup Configuration
-**File:** `backup-modify.tfvars`
-
-Modify backup settings (PITR, schedule, retention):
-
-```bash
-# Enable PITR and configure backups
-terraform apply \
-  -var-file=terraform.tfvars \
-  -var-file=ops-examples/backup-modify.tfvars
-```
-
-### 5. Termination Policy
-**File:** `termination-protect.tfvars`
-
-Change cluster protection policy:
-
-```bash
-# Protect cluster from deletion
-terraform apply \
-  -var-file=terraform.tfvars \
-  -var-file=ops-examples/termination-protect.tfvars
-```
+3. Initialize Terraform:
+   ```bash
+   terraform init
+   ```
 
 ## 🚀 Quick Start
 
-### Prerequisites
-
-1. Initialize Terraform and create a cluster first:
-   ```bash
-   cp terraform.tfvars.example terraform.tfvars
-   # Edit terraform.tfvars with your configuration
-   terraform init
-   terraform apply -var-file=terraform.tfvars
-   ```
-
-2. Verify cluster is running:
-   ```bash
-   kubectl get clusters -n kubeblocks-cloud-ns
-   ```
-
-### Performing Operations
-
-All operations modify the **same cluster**. Simply apply the desired operation file:
+### Create Initial Cluster
 
 ```bash
-# Example: Scale up compute
-terraform plan \
-  -var-file=terraform.tfvars \
-  -var-file=ops-examples/vscale-up-compute.tfvars
-
-terraform apply \
-  -var-file=terraform.tfvars \
-  -var-file=ops-examples/vscale-up-compute.tfvars
+terraform apply -var-file=terraform.tfvars
 ```
 
-## 💡 Tips
+This creates a MySQL cluster with default settings (2 replicas, 1c2g instance, 20GB storage).
 
-### Combining Operations
+---
 
-You can combine multiple operations in a single apply:
+## 🔧 Operations Guide
+
+All operations use the **layered tfvars** approach:
+- Base configuration: `terraform.tfvars`
+- Operation overrides: `ops-examples/*.tfvars`
+
+### 1️⃣ Vertical Scaling (VScale)
+
+Scale compute resources (CPU/Memory) or storage.
+
+#### Scale UP Compute
 
 ```bash
-# Scale up AND add replicas at the same time
-cat > combined-ops.tfvars << EOF
-class_code = "mongodb.replicaset.mongodb.2c2g.general"
-replicas = 5
+# Preview changes
+terraform plan -var-file=terraform.tfvars -var-file=ops-examples/vscale-up-compute.tfvars
+
+# Apply changes
+terraform apply -var-file=terraform.tfvars -var-file=ops-examples/vscale-up-compute.tfvars
+```
+
+**What happens:** Instance class changes from `1c2g` (1 CPU, 2GB RAM) to `2c4g` (2 CPU, 4GB RAM).
+
+#### Scale UP Storage
+
+Create a custom tfvars file:
+```bash
+cat > ops-examples/vscale-up-storage.tfvars << EOF
+storage_size_gb = 50
 EOF
 
-terraform apply \
-  -var-file=terraform.tfvars \
-  -var-file=combined-ops.tfvars
+terraform apply -var-file=terraform.tfvars -var-file=ops-examples/vscale-up-storage.tfvars
 ```
 
-### Preview Before Applying
+**Important Notes:**
+- ✅ You can **increase** storage at any time
+- ❌ You **cannot decrease** storage once increased
+- ⚠️ Scaling may cause brief downtime
 
-Always use `terraform plan` first to see what will change:
+---
+
+### 2️⃣ Horizontal Scaling (HScale)
+
+Add or remove replicas (nodes).
+
+#### Scale OUT (Add Replicas)
 
 ```bash
-terraform plan \
-  -var-file=terraform.tfvars \
-  -var-file=ops-examples/vscale-up-compute.tfvars
+terraform apply -var-file=terraform.tfvars -var-file=ops-examples/hscale-out.tfvars
 ```
 
-### Monitor Operations
+**What happens:** Replicas increase from 2 to 3.
 
-After applying, monitor the OpsRequest status:
+#### Scale IN (Remove Replicas)
+
+Edit the hscale tfvars file:
+```bash
+sed -i 's/replicas = 3/replicas = 1/' ops-examples/hscale-out.tfvars
+terraform apply -var-file=terraform.tfvars -var-file=ops-examples/hscale-out.tfvars
+```
+
+**Important Notes:**
+- Minimum replicas depends on mode (standalone: 1, replication: 1+)
+- Primary node cannot be removed directly
+
+---
+
+### 3️⃣ Parameter Reconfiguration
+
+Modify database parameters without recreating the cluster.
+
+#### Modify Custom Parameters
 
 ```bash
-kubectl get opsrequest -n kubeblocks-cloud-ns -w
+terraform apply -var-file=terraform.tfvars -var-file=ops-examples/reconfigure-params.tfvars
+```
+
+**What changes:**
+- Timezone: `+08:00` → `+09:00`
+- Added: `max_connections = 500`
+- Added: `innodb_buffer_pool_size = 1G`
+
+#### Change Parameter Template
+
+Create a custom tfvars:
+```bash
+cat > ops-examples/reconfigure-template.tfvars << EOF
+param_tpl_name = "mysql-8.0-high-performance-template"
+EOF
+
+terraform apply -var-file=terraform.tfvars -var-file=ops-examples/reconfigure-template.tfvars
+```
+
+---
+
+### 4️⃣ Backup Operations
+
+Configure automatic backups, PITR, and retention policies.
+
+#### Enable Automatic Backup
+
+```bash
+terraform apply -var-file=terraform.tfvars -var-file=ops-examples/backup-modify.tfvars
+```
+
+**What happens:**
+- Enables daily backups at 2:00 AM
+- Uses `xtrabackup` method
+- Retains last backup for 7 days
+
+#### Enable Point-in-Time Recovery (PITR)
+
+Edit the backup tfvars file:
+```bash
+cat > ops-examples/backup-pitr.tfvars << EOF
+auto_backup              = true
+auto_backup_method       = "xtrabackup"
+pitr_enabled             = true
+continuous_backup_method = "binlog"
+EOF
+
+terraform apply -var-file=terraform.tfvars -var-file=ops-examples/backup-pitr.tfvars
+```
+
+#### Change Retention Policy
+
+```bash
+cat > ops-examples/backup-retention.tfvars << EOF
+retention_period = "30d"    # Keep backups for 30 days
+retention_policy = "LastThree"  # Keep last 3 backups
+EOF
+
+terraform apply -var-file=terraform.tfvars -var-file=ops-examples/backup-retention.tfvars
+```
+
+---
+
+### 5️⃣ Volume Expansion
+
+Expand storage for existing volumes.
+
+#### Expand Data Volume
+
+```bash
+# Preview changes
+terraform plan -var-file=terraform.tfvars -var-file=ops-examples/volume-expand-operation.tfvars
+
+# Apply changes
+terraform apply -var-file=terraform.tfvars -var-file=ops-examples/volume-expand-operation.tfvars
+```
+
+**What happens:** Expands the `data` PVC from current size to 100 GB.
+
+#### Expand Specific Volume
+
+For clusters with multiple volumes (e.g., data, log, wal):
+
+```bash
+cat > ops-examples/volume-expand-log.tfvars << EOF
+storage_size_gb = 50
+volume_claim_template_name = "log"
+EOF
+
+terraform apply -var-file=terraform.tfvars -var-file=ops-examples/volume-expand-log.tfvars
+```
+
+**Important Notes:**
+- ✅ You can **increase** storage at any time
+- ❌ You **cannot decrease** storage once increased
+- ⚠️ Specify `volume_claim_template_name` to target specific PVCs
+- ⚠️ Volume expansion is an online operation (no downtime)
+
+---
+
+### 6️⃣ Termination Policy
+
+Protect clusters from accidental deletion.
+
+#### Enable Protection
+
+```bash
+terraform apply -var-file=terraform.tfvars -var-file=ops-examples/termination-protect.tfvars
+```
+
+**What happens:** Changes policy from `Delete` to `DoNotTerminate`.
+
+**To delete the cluster later:**
+```bash
+# First, allow termination
+terraform apply -var-file=terraform.tfvars -var='termination_policy=Delete'
+
+# Then destroy
+terraform destroy -var-file=terraform.tfvars
+```
+
+---
+
+## 🎯 Common Workflows
+
+### Workflow 1: Production Deployment
+
+```bash
+# 1. Create production cluster
+terraform apply -var-file=terraform.tfvars
+
+# 2. Scale up for production workload
+terraform apply -var-file=terraform.tfvars \
+  -var='class_code=mysql.replication.mysql.4c8g.general' \
+  -var='storage_size_gb=100' \
+  -var='replicas=3'
+
+# 3. Enable backups
+terraform apply -var-file=terraform.tfvars \
+  -var='auto_backup=true' \
+  -var='auto_backup_method=xtrabackup' \
+  -var='cron_expression=0 2 * * *' \
+  -var='retention_period=7d' \
+  -var='retention_policy=LastOne'
+
+# 4. Protect from deletion
+terraform apply -var-file=terraform.tfvars -var='termination_policy=DoNotTerminate'
+```
+
+### Workflow 2: Development Environment
+
+```bash
+# 1. Create small dev cluster
+terraform apply -var-file=terraform.tfvars \
+  -var='cluster_name=my-mysql-dev' \
+  -var='environment_name=dev' \
+  -var='class_code=mysql.replication.mysql.1c2g.general' \
+  -var='replicas=1'
+
+# 2. Allow easy cleanup
+terraform apply -var-file=terraform.tfvars -var='termination_policy=Delete'
+
+# ... do your work ...
+
+# 3. Clean up
+terraform destroy -var-file=terraform.tfvars
+```
+
+---
+
+## 📝 Best Practices
+
+1. **Use separate tfvars files** for different environments:
+   - `terraform.tfvars.dev`
+   - `terraform.tfvars.staging`
+   - `terraform.tfvars.prod`
+
+2. **Never commit sensitive data**:
+   ```bash
+   echo "terraform.tfvars" >> .gitignore
+   ```
+
+3. **Preview before applying**:
+   ```bash
+   terraform plan -var-file=terraform.tfvars -var-file=ops-examples/xxx.tfvars
+   ```
+
+4. **Test operations in dev first** before applying to production
+
+5. **Monitor operations** via KubeBlocks dashboard or kubectl:
+   ```bash
+   kubectl get opsrequest -n kubeblocks-cloud-ns
+   ```
+
+---
+
+## ❓ Troubleshooting
+
+### Issue: "class_code not found"
+
+**Solution:** Verify available classes in your environment:
+```bash
+kubectl get componentversions -A
+```
+
+### Issue: "Cannot decrease storage"
+
+**Solution:** Storage can only be increased. To reduce, you must recreate the cluster.
+
+### Issue: "Operation timeout"
+
+**Solution:** Check OpsRequest status:
+```bash
 kubectl describe opsrequest <ops-name> -n kubeblocks-cloud-ns
 ```
 
-## ⚠️ Important Notes
+---
 
-1. **Single Cluster**: All operations modify the same cluster defined in `main.tf`
-2. **No Downtime**: Most operations are online, but some may cause brief interruptions
-3. **Backup First**: Always ensure you have recent backups before major changes
-4. **Test in Dev**: Test operations in a development environment first
+## 🔗 Related Documentation
 
-## 🔍 Troubleshooting
-
-### Operation Stuck
-
-Check OpsRequest status:
-```bash
-kubectl get opsrequest -n kubeblocks-cloud-ns
-kubectl describe opsrequest <name> -n kubeblocks-cloud-ns
-```
-
-### Insufficient Resources
-
-Verify resource quotas:
-```bash
-kubectl describe resourcequota -n kubeblocks-cloud-ns
-```
-
-### Check Logs
-
-View operator logs:
-```bash
-kubectl logs -l app.kubernetes.io/name=kubeblocks -n kubeblocks-system --tail=100
-```
+- [KubeBlocks Documentation](https://kubeblocks.io/docs)
+- [Terraform Provider Docs](../../docs/)
+- [MySQL Engine Options](../../../engineoption/mysql.json)

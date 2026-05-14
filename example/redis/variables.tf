@@ -187,6 +187,12 @@ variable "storage_size_gb" {
   default     = 30
 }
 
+variable "volume_claim_template_name" {
+  description = "Volume claim template name (e.g., data, log)"
+  type        = string
+  default     = "data"
+}
+
 variable "storage_class" {
   description = "Storage class name"
   type        = string

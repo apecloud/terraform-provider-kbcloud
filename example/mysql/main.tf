@@ -65,7 +65,7 @@ resource "kbcloud_cluster" "my_mysql" {
       
       volumes = [
         {
-          name    = "data"
+          name    = var.volume_claim_template_name
           storage = var.storage_size_gb
         }
       ]

@@ -67,7 +67,7 @@ resource "kbcloud_cluster" "my_redis" {
         
         volumes = [
           {
-            name    = "data"
+            name    = var.volume_claim_template_name
             storage = var.storage_size_gb
             
             io_limits = {
@@ -92,7 +92,7 @@ resource "kbcloud_cluster" "my_redis" {
         
         volumes = [
           {
-            name    = "data"
+            name    = var.volume_claim_template_name
             storage = var.sentinel_storage_size_gb
             
             io_limits = {

@@ -54,7 +54,7 @@ resource "kbcloud_cluster" "my_mssql" {
       replicas  = var.replicas
       volumes = [
         {
-          name    = "data"
+          name    = var.volume_claim_template_name
           storage = var.storage_size_gb # GB
           io_limits = {
             read_iops  = var.read_iops

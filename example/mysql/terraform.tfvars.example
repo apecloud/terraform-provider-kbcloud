@@ -38,6 +38,7 @@ maintenance_weekdays   = "1,2,3,4,5,6,7"
 component_name = "mysql"
 replicas       = 2
 storage_size_gb = 20
+volume_claim_template_name = "data"
 storage_class  = "apelocal-hostpath-default"
 class_code     = "mysql.replication.mysql.1c2g.general"
 
