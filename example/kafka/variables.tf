@@ -195,6 +195,12 @@ variable "combined_replicas" {
   default     = 1
 }
 
+variable "volume_claim_template_name" {
+  description = "Volume claim template name (e.g., data, log)"
+  type        = string
+  default     = "data"
+}
+
 variable "combined_data_storage_gb" {
   description = "Combined mode data storage in GB"
   type        = number

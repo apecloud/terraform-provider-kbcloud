@@ -36,11 +36,12 @@ Options:
                                               1) init & apply (create cluster)
                                               2) destroy (delete cluster)
                                               3) plan (preview changes)
-                                              4) vscale (vertical scaling)
-                                              5) hscale (horizontal scaling)
+                                              4) vscale (vertical scaling - CPU/Memory)
+                                              5) hscale (horizontal scaling - replicas)
                                               6) reconfigure (modify parameters)
                                               7) backup (configure backup)
                                               8) termination (change policy)
+                                              9) volume-expand (expand storage)
     
     -cn, --cluster-name                     Cluster name (default: $DEFAULT_CLUSTER_NAME)
     -dn, --display-name                     Display name (default: $DEFAULT_DISPLAY_NAME)
@@ -53,6 +54,7 @@ Options:
     -r, --replicas                          Number of replicas (default: $DEFAULT_REPLICAS)
     -s, --storage-size                      Storage size in GB (default: $DEFAULT_STORAGE_SIZE)
     -cc, --class-code                       Instance class code (default: $DEFAULT_CLASS_CODE)
+    -vct, --volume-claim-template-name      Volume claim template name (default: data)
     
     -tp, --termination-policy               Termination policy (Delete/DoNotTerminate)
     
@@ -111,6 +113,11 @@ Examples:
         -comp "mysql" \\
         -cp '{"max_connections": "200"}'
     
+    # Expand storage
+    ./run.sh -t 9 \\
+        -s 100 \\
+        -vct "data"
+    
     # Destroy cluster
     ./run.sh -t 2
 
@@ -147,6 +154,7 @@ terraform_init_and_apply() {
         [[ -n "$REPLICAS" ]] && sed -i '' "s/^replicas.*/replicas = $REPLICAS/" terraform.tfvars
         [[ -n "$STORAGE_SIZE" ]] && sed -i '' "s/^storage_size_gb.*/storage_size_gb = $STORAGE_SIZE/" terraform.tfvars
         [[ -n "$CLASS_CODE" ]] && sed -i '' "s/^class_code.*/class_code = \"$CLASS_CODE\"/" terraform.tfvars
+        [[ -n "$VOLUME_CLAIM_TEMPLATE_NAME" ]] && sed -i '' "s/^volume_claim_template_name.*/volume_claim_template_name = \"$VOLUME_CLAIM_TEMPLATE_NAME\"/" terraform.tfvars
         [[ -n "$BACKUP_REPO" ]] && sed -i '' "s/^backup_repo.*/backup_repo = \"$BACKUP_REPO\"/" terraform.tfvars
         [[ -n "$TERMINATION_POLICY" ]] && sed -i '' "s/^termination_policy.*/termination_policy = \"$TERMINATION_POLICY\"/" terraform.tfvars
         
@@ -174,6 +182,7 @@ terraform_init_and_apply() {
         [[ -n "$REPLICAS" ]] && sed -i "s/^replicas.*/replicas = $REPLICAS/" terraform.tfvars
         [[ -n "$STORAGE_SIZE" ]] && sed -i "s/^storage_size_gb.*/storage_size_gb = $STORAGE_SIZE/" terraform.tfvars
         [[ -n "$CLASS_CODE" ]] && sed -i "s/^class_code.*/class_code = \"$CLASS_CODE\"/" terraform.tfvars
+        [[ -n "$VOLUME_CLAIM_TEMPLATE_NAME" ]] && sed -i "s/^volume_claim_template_name.*/volume_claim_template_name = \"$VOLUME_CLAIM_TEMPLATE_NAME\"/" terraform.tfvars
         [[ -n "$BACKUP_REPO" ]] && sed -i "s/^backup_repo.*/backup_repo = \"$BACKUP_REPO\"/" terraform.tfvars
         [[ -n "$TERMINATION_POLICY" ]] && sed -i "s/^termination_policy.*/termination_policy = \"$TERMINATION_POLICY\"/" terraform.tfvars
         
@@ -284,22 +293,27 @@ terraform_vscale() {
     # Create vscale tfvars
     cat > ops-examples/vscale-operation.tfvars << EOF
 # Vertical Scaling Operation
+# Note: VScale only changes CPU/Memory (class_code), not storage
+# To expand storage, modify terraform.tfvars and run regular terraform apply
 class_code = "$CLASS_CODE"
-storage_size_gb = $STORAGE_SIZE
 EOF
     
     echo ""
     echo "Scaling Configuration:"
     echo "  Class Code:   $CLASS_CODE"
-    echo "  Storage Size: ${STORAGE_SIZE} GB"
+    echo "  (Storage size unchanged - modify terraform.tfvars to expand storage)"
     echo ""
     
     echo "Running: terraform plan"
+    # Set environment variable to indicate operation type
+    export TF_VAR_operation_type="vscale"
     terraform plan -var-file=terraform.tfvars -var-file=ops-examples/vscale-operation.tfvars
     
     echo ""
     read -p "Apply changes? (yes/no): " confirm
     if [[ "$confirm" == "yes" ]]; then
+        # Set environment variable to indicate operation type
+        export TF_VAR_operation_type="vscale"
         terraform apply -var-file=terraform.tfvars -var-file=ops-examples/vscale-operation.tfvars
         echo "Vertical scaling completed!"
     else
@@ -335,11 +349,15 @@ EOF
     echo ""
     
     echo "Running: terraform plan"
+    # Set environment variable to indicate operation type
+    export TF_VAR_operation_type="hscale"
     terraform plan -var-file=terraform.tfvars -var-file=ops-examples/hscale-operation.tfvars
     
     echo ""
     read -p "Apply changes? (yes/no): " confirm
     if [[ "$confirm" == "yes" ]]; then
+        # Set environment variable to indicate operation type
+        export TF_VAR_operation_type="hscale"
         terraform apply -var-file=terraform.tfvars -var-file=ops-examples/hscale-operation.tfvars
         echo "Horizontal scaling completed!"
     else
@@ -348,6 +366,52 @@ EOF
     
     # Cleanup
     rm -f ops-examples/hscale-operation.tfvars
+}
+
+# ============================================================================
+# Volume Expand (Storage Expansion)
+# ============================================================================
+terraform_volume_expand() {
+    echo "=========================================="
+    echo "Performing Volume Expansion..."
+    echo "=========================================="
+    
+    if [[ ! -f "terraform.tfvars" ]]; then
+        echo "Error: terraform.tfvars not found. Please create cluster first (-t 1)"
+        exit 1
+    fi
+    
+    # Create volume expand tfvars
+    cat > ops-examples/volume-expand-operation.tfvars << EOF
+# Volume Expansion Operation
+storage_size_gb = $STORAGE_SIZE
+volume_claim_template_name = "$VOLUME_CLAIM_TEMPLATE_NAME"
+EOF
+    
+    echo ""
+    echo "Volume Expansion Configuration:"
+    echo "  Volume Name:      ${VOLUME_CLAIM_TEMPLATE_NAME}"
+    echo "  New Storage Size: ${STORAGE_SIZE} GB"
+    echo ""
+    
+    echo "Running: terraform plan"
+    # Set environment variable to indicate operation type
+    export TF_VAR_operation_type="volume-expand"
+    terraform plan -var-file=terraform.tfvars -var-file=ops-examples/volume-expand-operation.tfvars
+    
+    echo ""
+    read -p "Apply changes? (yes/no): " confirm
+    if [[ "$confirm" == "yes" ]]; then
+        # Set environment variable to indicate operation type
+        export TF_VAR_operation_type="volume-expand"
+        terraform apply -var-file=terraform.tfvars -var-file=ops-examples/volume-expand-operation.tfvars
+        echo "Volume expansion completed!"
+    else
+        echo "Aborted."
+    fi
+    
+    # Cleanup
+    rm -f ops-examples/volume-expand-operation.tfvars
 }
 
 # ============================================================================
@@ -528,6 +592,7 @@ main() {
     local REPLICAS="$DEFAULT_REPLICAS"
     local STORAGE_SIZE="$DEFAULT_STORAGE_SIZE"
     local CLASS_CODE="$DEFAULT_CLASS_CODE"
+    local VOLUME_CLAIM_TEMPLATE_NAME="data"
     local TERMINATION_POLICY="$DEFAULT_TERMINATION_POLICY"
     # Backup fields: only set defaults for cluster creation (type 1), otherwise leave empty
     local AUTO_BACKUP=""
@@ -580,6 +645,9 @@ main() {
             ;;
         8)
             terraform_termination
+            ;;
+        9)
+            terraform_volume_expand
             ;;
         *)
             echo "Error: Invalid operation type: $TYPE"
@@ -641,6 +709,10 @@ parse_command_line() {
                 ;;
             -cc|--class-code)
                 CLASS_CODE="${2:-}"
+                shift
+                ;;
+            -vct|--volume-claim-template-name)
+                VOLUME_CLAIM_TEMPLATE_NAME="${2:-}"
                 shift
                 ;;
             -tp|--termination-policy)

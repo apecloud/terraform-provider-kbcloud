@@ -66,7 +66,7 @@ resource "kbcloud_cluster" "my_kafka" {
       
       volumes = [
         {
-          name    = "data"
+          name    = var.volume_claim_template_name
           storage = var.combined_data_storage_gb
           io_limits = {
             read_iops  = var.combined_read_iops
@@ -101,7 +101,7 @@ resource "kbcloud_cluster" "my_kafka" {
       
       volumes = [
         {
-          name    = "data"
+          name    = var.volume_claim_template_name
           storage = var.broker_data_storage_gb
           io_limits = {
             read_iops  = var.broker_read_iops
@@ -145,7 +145,7 @@ resource "kbcloud_cluster" "my_kafka" {
       
       volumes = [
         {
-          name    = "data"
+          name    = var.volume_claim_template_name
           storage = var.broker_data_storage_gb
           io_limits = {
             read_iops  = var.broker_read_iops

@@ -151,7 +151,41 @@ incremental_cron_expression = "0 */6 * * *"
 
 ---
 
-### 5️⃣ Termination Policy
+### 5️⃣ Volume Expansion
+**What**: Expand storage for existing volumes  
+**Triggers**: VolumeExpand OpsRequest  
+**Downtime**: None (online operation)
+
+#### How to Expand Storage
+
+**Method 1: Using run.sh script (Recommended)**
+```bash
+./run.sh -t 9 -s 100 -vct "data"
+```
+
+**Method 2: Using tfvars overlay**
+```bash
+terraform apply -var-file=terraform.tfvars -var-file=ops-examples/volume-expand-operation.tfvars
+```
+
+**Method 3: Direct configuration in terraform.tfvars**
+```hcl
+# Expand data volume to 100 GB
+storage_size_gb = 100
+volume_claim_template_name = "data"  # Specify which PVC to expand
+```
+
+**Important Notes:**
+- ✅ You can **increase** storage at any time
+- ❌ You **cannot decrease** storage once increased
+- ⚠️ For multi-volume clusters, specify `volume_claim_template_name` to target specific PVCs
+
+**Examples**:
+- [volume-expand-operation.tfvars](mysql/ops-examples/volume-expand-operation.tfvars)
+
+---
+
+### 6️⃣ Termination Policy
 **What**: Control whether cluster can be deleted  
 **Triggers**: None (policy change only)  
 **Downtime**: None

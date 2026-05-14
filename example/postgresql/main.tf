@@ -49,7 +49,7 @@ resource "kbcloud_cluster" "my_pg" {
       
       volumes = [
         {
-          name    = "data"
+          name    = var.volume_claim_template_name
           storage = var.storage_size_gb
           
           io_limits = {

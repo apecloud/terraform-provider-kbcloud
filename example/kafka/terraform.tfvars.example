@@ -44,6 +44,7 @@ maintenance_weekdays   = "1,2,3,4,5,6,7"
 # Combined Mode Configuration (when mode = "combined")
 combined_component_name      = "kafka-combine"
 combined_replicas            = 1
+volume_claim_template_name   = "data"
 combined_data_storage_gb     = 20
 combined_metadata_storage_gb = 5
 combined_read_iops           = 1000

@@ -10,12 +10,4 @@
 # Scale UP Compute: 2 CPU/2GB -> 4 CPU/4GB
 class_code = "redis.replication.redis.4c8g.general"
 
-# Storage remains the same (30 GB)
-# storage_size_gb = 30
-
-# ============================================================================
-# Alternative: Scale UP Both Compute and Storage
-# Uncomment the following lines to scale both
-# ============================================================================
-# class_code = "redis.replication.redis.8c8g.general"
-# storage_size_gb = 100
+# Note: For storage expansion, use ops-examples/volume-expand-operation.tfvars

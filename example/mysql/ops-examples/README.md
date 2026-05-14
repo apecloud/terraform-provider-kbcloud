@@ -170,7 +170,44 @@ terraform apply -var-file=terraform.tfvars -var-file=ops-examples/backup-retenti
 
 ---
 
-### 5️⃣ Termination Policy
+### 5️⃣ Volume Expansion
+
+Expand storage for existing volumes.
+
+#### Expand Data Volume
+
+```bash
+# Preview changes
+terraform plan -var-file=terraform.tfvars -var-file=ops-examples/volume-expand-operation.tfvars
+
+# Apply changes
+terraform apply -var-file=terraform.tfvars -var-file=ops-examples/volume-expand-operation.tfvars
+```
+
+**What happens:** Expands the `data` PVC from current size to 100 GB.
+
+#### Expand Specific Volume
+
+For clusters with multiple volumes (e.g., data, log, wal):
+
+```bash
+cat > ops-examples/volume-expand-log.tfvars << EOF
+storage_size_gb = 50
+volume_claim_template_name = "log"
+EOF
+
+terraform apply -var-file=terraform.tfvars -var-file=ops-examples/volume-expand-log.tfvars
+```
+
+**Important Notes:**
+- ✅ You can **increase** storage at any time
+- ❌ You **cannot decrease** storage once increased
+- ⚠️ Specify `volume_claim_template_name` to target specific PVCs
+- ⚠️ Volume expansion is an online operation (no downtime)
+
+---
+
+### 6️⃣ Termination Policy
 
 Protect clusters from accidental deletion.
 

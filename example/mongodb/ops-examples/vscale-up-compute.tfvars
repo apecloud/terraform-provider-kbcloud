@@ -10,12 +10,4 @@
 # Scale UP Compute: 1 CPU/1GB -> 2 CPU/2GB
 class_code = "mongodb.replicaset.mongodb.2c2g.general"
 
-# Storage remains the same (20 GB)
-# storage_size_gb = 20
-
-# ============================================================================
-# Alternative: Scale UP Both Compute and Storage
-# Uncomment the following lines to scale both
-# ============================================================================
-# class_code = "mongodb.replicaset.mongodb.4c4g.general"
-# storage_size_gb = 100
+# Note: For storage expansion, use ops-examples/volume-expand-operation.tfvars

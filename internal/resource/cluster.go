@@ -470,15 +470,18 @@ func (r *ClusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		}
 	} else if operationType == "backup" {
 		// Explicit backup operation: skip reconfigure
-	} else if operationType == "termination" || operationType == "vscale" || operationType == "hscale" {
+	} else if operationType == "termination" || operationType == "vscale" || operationType == "hscale" || operationType == "volume-expand" {
 		// Explicit cluster-level operation: skip reconfigure unless it's specifically "reconfigure"
-	} else {
-		// No explicit operation type: check if reconfigure is needed based on actual changes
+	} else if operationType == "" {
+		// No operation type specified: auto-detect and execute based on actual changes
 		diags.Append(r.doReconfigure(ctx, &data, &stateData)...)
 		if diags.HasError() {
 			resp.Diagnostics.Append(diags...)
 			return
 		}
+	} else {
+		// Unknown operation type: log warning and skip for safety
+		fmt.Printf("Warning: Unknown operation type '%s', skipping reconfigure operation\n", operationType)
 	}
 
 	// 4. Update backup policy if backup configuration changed
@@ -489,20 +492,19 @@ func (r *ClusterResource) Update(ctx context.Context, req resource.UpdateRequest
 			resp.Diagnostics.Append(diags...)
 			return
 		}
-	} else if operationType == "termination" || operationType == "vscale" || operationType == "hscale" || operationType == "reconfigure" {
+	} else if operationType == "termination" || operationType == "vscale" || operationType == "hscale" || operationType == "reconfigure" || operationType == "volume-expand" {
 		// Explicit cluster-level operation: only update cluster, skip backup policy
 		// This prevents unintended backup changes when user only wants to modify cluster settings
-	} else {
-		// No explicit operation type: independently check both cluster and backup changes
-		// Allow simultaneous updates if both have actual changes
-
-		// Update backup policy if there are backup-level changes
-		// Note: We always check backup changes unless explicitly skipped by operationType
+	} else if operationType == "" {
+		// No operation type specified: auto-detect and update backup policy if changed
 		diags.Append(r.doUpdateBackupPolicy(ctx, &data, &stateData)...)
 		if diags.HasError() {
 			resp.Diagnostics.Append(diags...)
 			return
 		}
+	} else {
+		// Unknown operation type: log warning and skip for safety
+		fmt.Printf("Warning: Unknown operation type '%s', skipping backup policy update\n", operationType)
 	}
 
 	resp.Diagnostics.Append(diags...)

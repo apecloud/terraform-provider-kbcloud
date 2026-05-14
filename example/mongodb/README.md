@@ -152,7 +152,29 @@ See [ops-examples/README.md](ops-examples/README.md#4-backup-operations) for mor
 
 ---
 
-### 5. Termination Policy
+### 5. Volume Expansion
+
+Expand storage for existing volumes.
+
+**Using run.sh:**
+```bash
+./run.sh -t 9 -s 100 -vct "data"
+```
+
+**Using tfvars overlay:**
+```bash
+terraform apply \
+  -var-file=terraform.tfvars \
+  -var-file=ops-examples/volume-expand-operation.tfvars
+```
+
+**What changes:** Expands the specified PVC (e.g., data volume) from current size to 100 GB.
+
+See [ops-examples/README.md](ops-examples/README.md#6-volume-expansion) for more details.
+
+---
+
+### 6. Termination Policy
 
 Protect cluster from accidental deletion.
 
