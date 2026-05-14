@@ -71,6 +71,15 @@ resource "kbcloud_cluster" "my_mssql" {
     }
   ]
 
+  init_options = [
+    {
+      component        = var.reconfigure_component != "" ? var.reconfigure_component : var.component_name
+      init_params      = var.custom_params
+      spec_name        = var.spec_name
+      config_file_name = var.config_file_name != "" ? var.config_file_name : null
+    }
+  ]
+
   backup = {
     auto_backup                 = var.auto_backup
     auto_backup_method          = var.auto_backup_method

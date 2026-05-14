@@ -80,6 +80,8 @@ chmod +x run.sh
 | Retention Policy | `-rp` | `--retention-policy` | `LastOne` | Backup retention policy |
 | Custom Params | `-cp` | `--custom-params` | - | Custom parameters (JSON format) |
 | Param Template | `-ptn` | `--param-template` | - | Parameter template name |
+| Config File Name | `-cfn` | `--config-file-name` | - | Configuration file name for reconfigure (e.g., my.cnf) |
+| Component | `-comp` | `--component` | - | Component name for reconfigure (if empty, uses first component) |
 
 ### API Credentials
 
@@ -183,6 +185,8 @@ chmod +x run.sh
 
 ### 6. Modify Database Parameters
 
+#### Basic Reconfigure
+
 ```bash
 ./run.sh -t 6 \
     -cp '{"max_connections": "500", "innodb_buffer_pool_size": "2G"}'
@@ -193,6 +197,32 @@ chmod +x run.sh
 - Changes max connections to 500
 - Sets InnoDB buffer pool to 2GB
 - Applies changes without restart (if possible)
+
+#### Reconfigure with Custom Config File
+
+```bash
+./run.sh -t 6 \
+    -cp '{"binlog_expire_logs_seconds": "604801"}' \
+    -cfn "my.cnf"
+```
+
+**What this does:**
+- Specifies the configuration file name explicitly
+- Useful when multiple config files exist
+- Ensures correct config file is updated
+
+#### Reconfigure Specific Component (Multi-Component Clusters)
+
+```bash
+./run.sh -t 6 \
+    -comp "mysql" \
+    -cp '{"max_connections": "300"}'
+```
+
+**What this does:**
+- Targets a specific component in multi-component clusters
+- Overrides default component selection
+- Essential for complex deployments
 
 ---
 

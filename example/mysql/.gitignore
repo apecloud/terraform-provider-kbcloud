@@ -6,6 +6,15 @@
 *.tfstate.*
 *.tfplan
 
+# Terraform plan output files (engine-specific)
+*_plan
+mysql_plan
+pg_plan
+mongodb_plan
+kafka_plan
+redis_plan
+mssql_plan
+
 # Terraform lock file
 .terraform.lock.hcl
 
