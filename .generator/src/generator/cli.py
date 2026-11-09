@@ -58,7 +58,7 @@ def write_and_fmt(filename: pathlib.Path, content: str, go_fmt: bool):
     with filename.open("w") as fp:
         fp.write(content)
     if go_fmt:
-        subprocess.call(["go", "fmt", filename])
+        subprocess.run(["goimports", "-w", filename], check=True)
 
 
 def generate_resource(

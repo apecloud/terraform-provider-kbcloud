@@ -106,7 +106,7 @@ func (r *ClusterResource) Create(ctx context.Context, req resource.CreateRequest
 			return
 		}
 		data.ID = types.StringValue(pointer.ValueOf(cluster.Id))
-		diags = data.RefreshFromAPI(ctx, apiData)
+		diags = refreshClusterModel(ctx, &data, apiData)
 		if diags.HasError() {
 			resp.Diagnostics.Append(diags...)
 			return
@@ -136,11 +136,16 @@ func (r *ClusterResource) Create(ctx context.Context, req resource.CreateRequest
 			return
 		}
 		data.ID = types.StringValue(pointer.ValueOf(cluster.Id))
+		clusterBytes, err = json.Marshal(cluster)
+		if err != nil {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to marshal cluster: %s", err))
+			return
+		}
 		if err := json.Unmarshal(clusterBytes, &apiData); err != nil {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to unmarshal cluster, got error:%s", err.Error()))
 			return
 		}
-		diags = data.RefreshFromAPI(ctx, apiData)
+		diags = refreshClusterModel(ctx, &data, apiData)
 		if diags.HasError() {
 			resp.Diagnostics.Append(diags...)
 			return
@@ -174,8 +179,13 @@ func (r *ClusterResource) Read(ctx context.Context, req resource.ReadRequest, re
 	if diags.HasError() {
 		if diags.Contains(utils.NewNotFoundErrorDiagnostic(data.Name.ValueString(), data.OrgName.ValueString())) {
 			resp.State.RemoveResource(ctx)
+			return
 		}
-		resp.Diagnostics.Append(diag.NewWarningDiagnostic("cluster not found", fmt.Sprintf("cluster %s in org %s not found", data.Name.ValueString(), data.OrgName.ValueString())))
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	resp.Diagnostics.Append(r.refreshConfiguredParameters(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 	// Save updated data into Terraform state
@@ -224,66 +234,7 @@ func (r *ClusterResource) updateClusterState(ctx context.Context, data *mytypes.
 	}
 
 	data.ID = types.StringValue(apiData["id"].(string))
-	diags.Append(data.RefreshFromAPI(ctx, apiData)...)
-	return diags
-}
-
-// mergeClusterState merges the latest remote state with the local state
-// the merge policy is to:
-// 1. if local state field is nil or unknown, use the remote state field
-// 2. if local state field is not nil or unknown, keep the local state field
-func (r *ClusterResource) mergeClusterState(ctx context.Context, data *mytypes.ClustersResourceModel) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	// Get latest remote state
-	var (
-		clusterBytes []byte
-		err          error
-		apiResp      *http.Response
-		cluster      interface{}
-		apiData      map[string]interface{}
-	)
-
-	if r.client.IsAdminClient() {
-		cluster, apiResp, err = admin.NewClusterApi(r.client.AdminClient()).GetCluster(r.client.AdminCtx(), data.OrgName.ValueString(), data.Name.ValueString())
-	} else {
-		cluster, apiResp, err = kbcloud.NewClusterApi(r.client.Client()).GetCluster(r.client.Ctx(), data.OrgName.ValueString(), data.Name.ValueString())
-	}
-
-	if apiResp != nil && apiResp.StatusCode == 404 {
-		diags = append(diags, utils.NewNotFoundErrorDiagnostic(data.Name.ValueString(), data.OrgName.ValueString()))
-		return diags
-	}
-
-	if !utils.IsHTTPSuccess(apiResp) || err != nil {
-		errDetail := utils.GetRespErrorDetail(apiResp)
-		diags = append(diags, diag.NewErrorDiagnostic(
-			"read cluster error",
-			fmt.Sprintf("read cluster %s in org %s error: %v %s", data.Name.ValueString(), data.OrgName.ValueString(), err, errDetail),
-		))
-		return diags
-	}
-
-	clusterBytes, err = json.Marshal(cluster)
-	if err != nil {
-		diags.AddError("Client Error", fmt.Sprintf("Unable to marshal cluster, got error:%s", err.Error()))
-		return diags
-	}
-	if err := json.Unmarshal(clusterBytes, &apiData); err != nil {
-		diags.AddError("Client Error", fmt.Sprintf("Unable to unmarshal cluster, got error:%s", err.Error()))
-		return diags
-	}
-
-	remoteData := mytypes.ClustersResourceModel{}
-	remoteData.RefreshFromAPI(ctx, apiData)
-
-	// Merge strategy:
-	// 1. if local state field is nil or unknown, use the remote state field
-	// 2. if local state field is not nil or unknown, keep the local state field
-	//
-	// We call the auto-generated Merge function on the top level data model.
-	data.Merge(&remoteData)
-
+	diags.Append(refreshClusterModel(ctx, data, apiData)...)
 	return diags
 }
 
@@ -305,18 +256,25 @@ func (r *ClusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	defer func() {
-		refreshDiags := r.mergeClusterState(ctx, &data)
-		diags.Append(refreshDiags...)
+	resp.Diagnostics.Append(validateDolphinDBUpdate(&data, &stateData)...)
+	_, parameterDiags := parameterRequests(ctx, &data, &stateData)
+	resp.Diagnostics.Append(parameterDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-		// It is actually recommended in Terraform to save the state even if there are errors
-		// during an update, so that Terraform knows exactly what successfully changed.
-		// If mergeClusterState succeeded, data now contains the real world state.
+	defer func() {
+		// On partial failure, refresh actual remote values without recording the
+		// unexecuted portion of the plan as successful state.
+		if diags.HasError() || resp.Diagnostics.HasError() {
+			data = stateData
+		}
+		refreshDiags := r.updateClusterState(ctx, &data)
+		diags.Append(refreshDiags...)
 		if !refreshDiags.HasError() {
+			diags.Append(r.refreshConfiguredParameters(ctx, &data)...)
 			resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 		}
-
-		// Finally, make sure all collected diags are appended to the response
 		resp.Diagnostics.Append(diags...)
 	}()
 
@@ -337,17 +295,17 @@ func (r *ClusterResource) Update(ctx context.Context, req resource.UpdateRequest
 	hasClusterUpdate := false
 
 	// Check TerminationPolicy change
-	if !data.TerminationPolicy.Equal(stateData.TerminationPolicy) {
+	if !data.TerminationPolicy.IsUnknown() && !data.TerminationPolicy.Equal(stateData.TerminationPolicy) {
 		hasClusterUpdate = true
 	}
 
 	// Check DisplayName change
-	if !data.DisplayName.Equal(stateData.DisplayName) {
+	if !data.DisplayName.IsUnknown() && !data.DisplayName.Equal(stateData.DisplayName) {
 		hasClusterUpdate = true
 	}
 
 	// Check MaintainceWindow change
-	if !data.MaintainceWindow.Equal(stateData.MaintainceWindow) {
+	if !data.MaintainceWindow.IsUnknown() && !data.MaintainceWindow.Equal(stateData.MaintainceWindow) {
 		hasClusterUpdate = true
 	}
 
@@ -440,17 +398,17 @@ func (r *ClusterResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	for _, cmp := range components {
-		diags.Append(r.doVscale(oldComponents, &data, cmp)...)
+		diags.Append(r.doVscale(ctx, oldComponents, &data, cmp)...)
 		if diags.HasError() {
 			resp.Diagnostics.Append(diags...)
 			return
 		}
-		diags.Append(r.doHscale(oldComponents, &data, cmp)...)
+		diags.Append(r.doHscale(ctx, oldComponents, &data, cmp)...)
 		if diags.HasError() {
 			resp.Diagnostics.Append(diags...)
 			return
 		}
-		diags.Append(r.doVolumeExpand(oldComponents, &data, cmp)...)
+		diags.Append(r.doVolumeExpand(ctx, oldComponents, &data, cmp)...)
 		if diags.HasError() {
 			resp.Diagnostics.Append(diags...)
 			return
@@ -702,6 +660,9 @@ func clusterResourceToClusterCreate(ctx context.Context, data *mytypes.ClustersR
 			Volumes:   apiVolumes,
 			Component: component.Component.ValueString(),
 		}
+		if !component.SkipResourceConstraints.IsNull() && !component.SkipResourceConstraints.IsUnknown() {
+			cmp.SkipResourceConstraints = component.SkipResourceConstraints.ValueBoolPointer()
+		}
 		if !component.ClassCode.IsNull() && !component.ClassCode.IsUnknown() {
 			cmp.ClassCode = component.ClassCode.ValueStringPointer()
 		}
@@ -950,7 +911,7 @@ func clusterResourceToClusterUpdate(ctx context.Context, data *mytypes.ClustersR
 	return &update, diags
 }
 
-func (r *ClusterResource) doVscale(oldComponents []admin.ComponentItem, data *mytypes.ClustersResourceModel, update *mytypes.ComponentsResourceModel) diag.Diagnostics {
+func (r *ClusterResource) doVscale(ctx context.Context, oldComponents []admin.ComponentItem, data *mytypes.ClustersResourceModel, update *mytypes.ComponentsResourceModel) diag.Diagnostics {
 	var (
 		diags diag.Diagnostics
 	)
@@ -967,9 +928,11 @@ func (r *ClusterResource) doVscale(oldComponents []admin.ComponentItem, data *my
 
 	var apiResp *http.Response
 	var err error
+	var taskID string
 
 	if r.client.IsAdminClient() {
-		_, apiResp, err = admin.NewOpsrequestApi(r.client.AdminClient()).VerticalScaleCluster(
+		var task admin.OpsRequestName
+		task, apiResp, err = admin.NewOpsrequestApi(r.client.AdminClient()).VerticalScaleCluster(
 			r.client.AdminCtx(),
 			data.OrgName.ValueString(),
 			data.Name.ValueString(),
@@ -980,8 +943,10 @@ func (r *ClusterResource) doVscale(oldComponents []admin.ComponentItem, data *my
 				ClassCode: update.ClassCode.ValueStringPointer(),
 			},
 		)
+		taskID = task.TaskId
 	} else {
-		_, apiResp, err = kbcloud.NewOpsrequestApi(r.client.Client()).VerticalScaleCluster(
+		var task kbcloud.OpsRequestName
+		task, apiResp, err = kbcloud.NewOpsrequestApi(r.client.Client()).VerticalScaleCluster(
 			r.client.Ctx(),
 			data.OrgName.ValueString(),
 			data.Name.ValueString(),
@@ -992,6 +957,7 @@ func (r *ClusterResource) doVscale(oldComponents []admin.ComponentItem, data *my
 				ClassCode: update.ClassCode.ValueStringPointer(),
 			},
 		)
+		taskID = task.TaskId
 	}
 
 	if err != nil {
@@ -999,10 +965,14 @@ func (r *ClusterResource) doVscale(oldComponents []admin.ComponentItem, data *my
 		diags.AddError("update cluster failed when vertical scale", errDetail)
 	}
 
+	if !diags.HasError() {
+		diags.Append(r.waitForTask(ctx, data.OrgName.ValueString(), taskID)...)
+	}
+
 	return diags
 }
 
-func (r *ClusterResource) doHscale(oldComponents []admin.ComponentItem, data *mytypes.ClustersResourceModel, update *mytypes.ComponentsResourceModel) diag.Diagnostics {
+func (r *ClusterResource) doHscale(ctx context.Context, oldComponents []admin.ComponentItem, data *mytypes.ClustersResourceModel, update *mytypes.ComponentsResourceModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	// valuePrecheck
@@ -1091,16 +1061,22 @@ func (r *ClusterResource) doHscale(oldComponents []admin.ComponentItem, data *my
 	// Helper to execute scale operation based on client type
 	executeScale := func(opsBody admin.OpsHScale) (*http.Response, error) {
 		if r.client.IsAdminClient() {
-			_, resp, err := admin.NewOpsrequestApi(r.client.AdminClient()).HorizontalScaleCluster(
+			task, resp, err := admin.NewOpsrequestApi(r.client.AdminClient()).HorizontalScaleCluster(
 				r.client.AdminCtx(), data.OrgName.ValueString(), data.Name.ValueString(), opsBody)
+			if err == nil {
+				diags.Append(r.waitForTask(ctx, data.OrgName.ValueString(), task.TaskId)...)
+			}
 			return resp, err
 		}
 
 		var kbBody kbcloud.OpsHScale
 		b, _ := json.Marshal(opsBody)
 		_ = json.Unmarshal(b, &kbBody)
-		_, resp, err := kbcloud.NewOpsrequestApi(r.client.Client()).HorizontalScaleCluster(
+		task, resp, err := kbcloud.NewOpsrequestApi(r.client.Client()).HorizontalScaleCluster(
 			r.client.Ctx(), data.OrgName.ValueString(), data.Name.ValueString(), kbBody)
+		if err == nil {
+			diags.Append(r.waitForTask(ctx, data.OrgName.ValueString(), task.TaskId)...)
+		}
 		return resp, err
 	}
 
@@ -1114,6 +1090,9 @@ func (r *ClusterResource) doHscale(oldComponents []admin.ComponentItem, data *my
 		opsBodyShard := opsBody
 		opsBodyShard.Shards.Set(pointer.Int32(int32(update.CompNum.ValueInt64())))
 		apiResp, err = executeScale(opsBodyShard)
+		if diags.HasError() {
+			return diags
+		}
 		if err != nil {
 			errDetail := utils.GetRespErrorDetail(apiResp)
 			diags.AddError("update cluster failed when horizontal scale shards", errDetail)
@@ -1124,6 +1103,9 @@ func (r *ClusterResource) doHscale(oldComponents []admin.ComponentItem, data *my
 		opsBodyReplicas := opsBody
 		opsBodyReplicas.Replicas.Set(pointer.Int32(int32(update.Replicas.ValueInt64())))
 		apiResp, err = executeScale(opsBodyReplicas)
+		if diags.HasError() {
+			return diags
+		}
 	} else {
 		if shardChanged {
 			opsBody.Shards.Set(pointer.Int32(int32(update.CompNum.ValueInt64())))
@@ -1132,6 +1114,9 @@ func (r *ClusterResource) doHscale(oldComponents []admin.ComponentItem, data *my
 			opsBody.Replicas.Set(pointer.Int32(int32(update.Replicas.ValueInt64())))
 		}
 		apiResp, err = executeScale(opsBody)
+		if diags.HasError() {
+			return diags
+		}
 	}
 
 	if err != nil {
@@ -1142,7 +1127,7 @@ func (r *ClusterResource) doHscale(oldComponents []admin.ComponentItem, data *my
 	return diags
 }
 
-func (r *ClusterResource) doVolumeExpand(oldComponents []admin.ComponentItem, data *mytypes.ClustersResourceModel, update *mytypes.ComponentsResourceModel) diag.Diagnostics {
+func (r *ClusterResource) doVolumeExpand(ctx context.Context, oldComponents []admin.ComponentItem, data *mytypes.ClustersResourceModel, update *mytypes.ComponentsResourceModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	expandVolumes := make([]admin.OpsVolumeExpandVolumesItem, 0)
@@ -1177,6 +1162,7 @@ func (r *ClusterResource) doVolumeExpand(oldComponents []admin.ComponentItem, da
 
 	var apiResp *http.Response
 	var err error
+	var taskID string
 
 	opsBody := admin.OpsVolumeExpand{
 		Component: update.Component.ValueString(),
@@ -1184,27 +1170,35 @@ func (r *ClusterResource) doVolumeExpand(oldComponents []admin.ComponentItem, da
 	}
 
 	if r.client.IsAdminClient() {
-		_, apiResp, err = admin.NewOpsrequestApi(r.client.AdminClient()).ClusterVolumeExpand(
+		var task admin.OpsRequestName
+		task, apiResp, err = admin.NewOpsrequestApi(r.client.AdminClient()).ClusterVolumeExpand(
 			r.client.AdminCtx(),
 			data.OrgName.ValueString(),
 			data.Name.ValueString(),
 			opsBody,
 		)
+		taskID = task.TaskId
 	} else {
 		var kbBody kbcloud.OpsVolumeExpand
 		b, _ := json.Marshal(opsBody)
 		_ = json.Unmarshal(b, &kbBody)
-		_, apiResp, err = kbcloud.NewOpsrequestApi(r.client.Client()).ClusterVolumeExpand(
+		var task kbcloud.OpsRequestName
+		task, apiResp, err = kbcloud.NewOpsrequestApi(r.client.Client()).ClusterVolumeExpand(
 			r.client.Ctx(),
 			data.OrgName.ValueString(),
 			data.Name.ValueString(),
 			kbBody,
 		)
+		taskID = task.TaskId
 	}
 
 	if err != nil {
 		errDetail := utils.GetRespErrorDetail(apiResp)
 		diags.AddError("update cluster failed when volume expand", errDetail)
+	}
+
+	if !diags.HasError() {
+		diags.Append(r.waitForTask(ctx, data.OrgName.ValueString(), taskID)...)
 	}
 
 	return diags
@@ -1389,183 +1383,4 @@ func (r *ClusterResource) doUpdateBackupPolicy(ctx context.Context, data *mytype
 	}
 
 	return diags
-}
-
-// doReconfigure updates cluster parameters via Reconfigure OpsRequest API
-func (r *ClusterResource) doReconfigure(ctx context.Context, data *mytypes.ClustersResourceModel, stateData *mytypes.ClustersResourceModel) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	// Check if ParamTpls or InitOptions have changed
-	hasParamTplChange := !data.ParamTpls.Equal(stateData.ParamTpls)
-	hasInitOptionsChange := !data.InitOptions.Equal(stateData.InitOptions)
-
-	if !hasParamTplChange && !hasInitOptionsChange {
-		return diags
-	}
-
-	// Get components to determine which component to reconfigure
-	var components []*mytypes.ComponentsResourceModel
-	if !data.Components.IsNull() && !data.Components.IsUnknown() {
-		diags.Append(data.Components.ElementsAs(ctx, &components, false)...)
-		if diags.HasError() {
-			return diags
-		}
-	}
-
-	if len(components) == 0 {
-		diags.AddWarning("Reconfigure Warning", "No components found, skipping reconfigure operation")
-		return diags
-	}
-
-	// Use the first component for reconfiguration
-	component := components[0]
-	componentName := component.Component.ValueString()
-
-	// Get config file name from InitOptions if provided, otherwise use default logic
-	var configFileName string
-	if hasInitOptionsChange && !data.InitOptions.IsNull() && !data.InitOptions.IsUnknown() {
-		var initOptionsList []*mytypes.InitOptionsResourceModel
-		diags.Append(data.InitOptions.ElementsAs(ctx, &initOptionsList, false)...)
-		if diags.HasError() {
-			return diags
-		}
-
-		// Try to get config_file_name from the first init_options entry
-		for _, initOpt := range initOptionsList {
-			if !initOpt.ConfigFileName.IsNull() && !initOpt.ConfigFileName.IsUnknown() {
-				configFileName = initOpt.ConfigFileName.ValueString()
-				break
-			}
-		}
-	}
-
-	// If config_file_name is not provided in InitOptions, use default logic based on engine type
-	if configFileName == "" {
-		configFileName = determineConfigFileName(data.Engine.ValueString(), componentName)
-	}
-
-	// Build ReconfigureCreate request
-	reconfigureBody := kbcloud.ReconfigureCreate{
-		Component:      componentName,
-		ConfigFileName: &configFileName,
-	}
-
-	// Handle InitOptions - convert init_params to Parameters map
-	if hasInitOptionsChange && !data.InitOptions.IsNull() && !data.InitOptions.IsUnknown() {
-		var initOptionsList []*mytypes.InitOptionsResourceModel
-		diags.Append(data.InitOptions.ElementsAs(ctx, &initOptionsList, false)...)
-		if diags.HasError() {
-			return diags
-		}
-
-		// Merge all init_options into a single Parameters map
-		parametersMap := make(map[string]string)
-		for _, initOpt := range initOptionsList {
-			if !initOpt.InitParams.IsNull() && !initOpt.InitParams.IsUnknown() {
-				var paramsMap map[string]string
-				paramDiags := initOpt.InitParams.ElementsAs(ctx, &paramsMap, false)
-				if paramDiags.HasError() {
-					diags.Append(paramDiags...)
-					continue
-				}
-				for k, v := range paramsMap {
-					parametersMap[k] = v
-				}
-			}
-		}
-
-		if len(parametersMap) > 0 {
-			reconfigureBody.SetParameters(parametersMap)
-		}
-	}
-
-	// Note: ParamTpls changes would typically require updating the cluster's parameter template
-	// This is handled through the PatchCluster API in clusterResourceToClusterUpdate
-	// For now, we focus on InitOptions (custom parameters) which use the Reconfigure API
-
-	// Call ReconfigureCluster API
-	var apiResp *http.Response
-	var err error
-
-	if r.client.IsAdminClient() {
-		// Admin client uses admin package types
-		adminBody := admin.ReconfigureCreate{
-			Component:      componentName,
-			ConfigFileName: &configFileName,
-		}
-		if params, ok := reconfigureBody.GetParametersOk(); ok {
-			adminBody.SetParameters(*params)
-		}
-		_, apiResp, err = admin.NewOpsrequestApi(r.client.AdminClient()).ReconfigureCluster(
-			r.client.AdminCtx(),
-			data.OrgName.ValueString(),
-			data.Name.ValueString(),
-			adminBody,
-		)
-	} else {
-		_, apiResp, err = kbcloud.NewOpsrequestApi(r.client.Client()).ReconfigureCluster(
-			r.client.Ctx(),
-			data.OrgName.ValueString(),
-			data.Name.ValueString(),
-			reconfigureBody,
-		)
-	}
-
-	if err != nil {
-		errDetail := utils.GetRespErrorDetail(apiResp)
-		diags.AddError("Client Error", fmt.Sprintf("Unable to reconfigure cluster, got error: %s %s", err.Error(), errDetail))
-		return diags
-	}
-
-	if !utils.IsHTTPSuccess(apiResp) {
-		errDetail := utils.GetRespErrorDetail(apiResp)
-		diags.AddError("Client Error", fmt.Sprintf("Unable to reconfigure cluster, got error: %s", errDetail))
-		return diags
-	}
-
-	return diags
-}
-
-// determineConfigFileName determines the configuration file name based on engine and component
-func determineConfigFileName(engine string, component string) string {
-	// Config file names for different engines (from engineoption/*.json)
-	// These are the configFileName values defined in the parameters.configSpecs
-	configFileNames := map[string]map[string]string{
-		"mysql": {
-			"mysql": "my.cnf",
-		},
-		"postgresql": {
-			"postgresql": "postgresql.conf",
-		},
-		"mongodb": {
-			"mongodb":             "mongodb.conf",
-			"mongo-shard":         "mongodb.conf",
-			"mongo-config-server": "mongodb.conf",
-			"mongo-mongos":        "mongos.conf",
-		},
-		"redis": {
-			"redis":          "redis.conf",
-			"redis-cluster":  "redis.conf",
-			"redis-sentinel": "redis.conf",
-		},
-		"kafka": {
-			"kafka-combine":    "server.properties",
-			"kafka-broker":     "server.properties",
-			"kafka-controller": "server.properties",
-			"kafka-zookeeper":  "zookeeper.properties",
-		},
-		"mssql": {
-			"mssql": "mssql.conf",
-		},
-	}
-
-	// Try to find specific config file name
-	if engineConfigs, ok := configFileNames[engine]; ok {
-		if configName, ok := engineConfigs[component]; ok {
-			return configName
-		}
-	}
-
-	// Fallback: use component name with .conf suffix
-	return component + ".conf"
 }

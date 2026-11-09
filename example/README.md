@@ -183,3 +183,7 @@ terraform apply \
 3. Implement production-grade configurations
 4. Master backup and disaster recovery strategies
 5. Create custom tfvars for complex scenarios
+
+## DolphinDB
+
+See [DolphinDB lifecycle](dolphindb/README.md) for standalone, integrated and separated configurations compatible with ApeCloud release-2.3.

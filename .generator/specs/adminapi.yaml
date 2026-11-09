@@ -18845,6 +18845,7 @@ components:
           type: integer
           description: The number of replicas, for standalone mode, the replicas is 1, for raftGroup mode, the default replicas is 3.
         skipResourceConstraints:
+          x-terraform-ignore-update: true
           type: boolean
           description: Whether to skip resource constraint validation when creating cluster
           default: false
@@ -18885,16 +18886,24 @@ components:
       type: object
       properties:
         component:
+          x-terraform-ignore-update: true
           type: string
           description: component type, refer to componentDef and support NamePrefix'
         initParams:
+          x-terraform-ignore-update: true
           type: object
           additionalProperties:
             type: string
         specName:
+          x-terraform-ignore-update: true
           type: string
           description: config spec name
+        configFileName:
+          type: string
+          x-terraform-ignore-update: true
+          description: Configuration file to update; inferred from engine and component when omitted.
     initOptions:
+      x-terraform-ignore-update: true
       type: array
       description: InitOptions is the list of init option
       items:

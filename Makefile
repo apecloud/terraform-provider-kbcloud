@@ -66,7 +66,7 @@ generate build: ## Build the terraform provider executable.
 .PHONY: generate
 generate: ## Run Python generator to create terraform models and schemas.
 	@echo "Generating Terraform models and schemas from OpenAPI spec..."
-	@cd .generator/src && PYTHONPATH=. python -m generator.cli ../specs/adminapi-bundle-tmp.yaml ../configuration.yaml
+	@cd .generator/src && PYTHONPATH=. python -m generator.cli ../specs/adminapi.yaml ../configuration.yaml
 	@echo "Generation completed."
 	@goimports -w ./internal/types/ ./internal/resource/ ./internal/datasource/
 
