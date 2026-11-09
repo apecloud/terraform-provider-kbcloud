@@ -1,0 +1,16 @@
+# Replace these with objects that exist in your source cluster.
+selected_objects = [{
+  type = "database"
+  name = "dfs://market"
+  children = [{
+    type = "table"
+    name = "trades"
+    children = [{
+      type        = "partition"
+      name        = "/2"
+      selectedAll = true
+    }]
+  }]
+}]
+# To select a whole database or table, set selectedAll = true at that level.
+conflict_policy = "FAIL"

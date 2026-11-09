@@ -71,6 +71,7 @@ func (r *ClusterResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
+	configuredBackup := data.Backup
 	body, diags := clusterResourceToClusterCreate(ctx, &data)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -155,6 +156,18 @@ func (r *ClusterResource) Create(ctx context.Context, req resource.CreateRequest
 	// Call API and set state
 	diags = resp.State.Set(ctx, &data)
 	resp.Diagnostics.Append(diags...)
+	// Some engines initialize a default schedule instead of applying all backup
+	// fields in the cluster chart. Reconcile the configured policy immediately.
+	if !resp.Diagnostics.HasError() && !configuredBackup.IsNull() && !configuredBackup.IsUnknown() {
+		policyData := data
+		policyData.Backup = configuredBackup
+		resp.Diagnostics.Append(r.doUpdateBackupPolicy(ctx, &policyData, &mytypes.ClustersResourceModel{})...)
+		refreshDiags := r.updateClusterState(ctx, &data)
+		resp.Diagnostics.Append(refreshDiags...)
+		if !refreshDiags.HasError() {
+			resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+		}
+	}
 }
 
 func (r *ClusterResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -1301,10 +1314,6 @@ func (r *ClusterResource) doUpdateBackupPolicy(ctx context.Context, data *mytype
 		retentionPolicy := admin.BackupRetentionPolicy(backupModel.RetentionPolicy.ValueString())
 		backupPolicy.SetRetentionPolicy(retentionPolicy)
 	}
-	if !backupModel.SnapshotVolumes.IsNull() && !backupModel.SnapshotVolumes.IsUnknown() {
-		// SnapshotVolumes needs to be handled specially as it uses NullableBool
-		// For now, we'll skip this field in the update as it may require special handling
-	}
 	if !backupModel.IncrementalBackupEnabled.IsNull() && !backupModel.IncrementalBackupEnabled.IsUnknown() {
 		backupPolicy.SetIncrementalBackupEnabled(backupModel.IncrementalBackupEnabled.ValueBool())
 	}
@@ -1322,6 +1331,7 @@ func (r *ClusterResource) doUpdateBackupPolicy(ctx context.Context, data *mytype
 			data.OrgName.ValueString(),
 			data.Name.ValueString(),
 			backupPolicy,
+			admin.UpdateBackupPolicyOptionalParameters{UseVolumeSnapshot: backupModel.SnapshotVolumes.ValueBoolPointer()},
 		)
 	} else {
 		// Manually convert admin.BackupPolicy to kbcloud.BackupPolicy
@@ -1367,6 +1377,7 @@ func (r *ClusterResource) doUpdateBackupPolicy(ctx context.Context, data *mytype
 			data.OrgName.ValueString(),
 			data.Name.ValueString(),
 			kbBackupPolicy,
+			kbcloud.UpdateBackupPolicyOptionalParameters{UseVolumeSnapshot: backupModel.SnapshotVolumes.ValueBoolPointer()},
 		)
 	}
 

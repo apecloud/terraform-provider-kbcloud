@@ -73,3 +73,10 @@ terraform destroy
 ```
 
 This example uses `termination_policy = "Delete"`. Check the provider API and data-plane resources to confirm cleanup. Kubernetes may finish deletion after the API returns; allow cleanup to finish before immediately recreating the same cluster name.
+
+## Backup and recovery
+
+See [backup-restore](backup-restore/README.md) for scheduled backup policy,
+manual full/selective backup, and recovery into a compatible running cluster.
+`kbcloud_backup` waits for backup completion; `kbcloud_restore` waits for recovery
+completion and supports selection by database, table or exact partition.

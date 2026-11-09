@@ -82,6 +82,13 @@ terraform destroy
 
 *(Note: Because of* *`dev_overrides`,* *`terraform init`* *is not required for the* *`kbcloud`* *provider and may show warnings).*
 
+## DolphinDB on release-2.3
+
+See [DolphinDB lifecycle examples](example/dolphindb/README.md) and
+[backup and restore](example/dolphindb/backup-restore/README.md). The provider
+supports cluster backup policy, `kbcloud_backup` for full or selective snapshots,
+and `kbcloud_restore` for recovery into a compatible running cluster.
+
 ## Development & Code Generation
 
 This provider heavily utilizes an OpenAPI-based Python code generator to automatically create Terraform models and schemas.
@@ -95,7 +102,7 @@ When the OpenAPI spec changes or you modify the generation templates, you should
 make generate
 ```
 
-This command runs the Python CLI under `.generator/src/` to parse `.generator/specs/adminapi-bundle-tmp.yaml` and updates the files inside:
+This command runs the Python CLI under `.generator/src/` to parse `.generator/specs/adminapi.yaml` and updates the files inside:
 
 - `internal/types/`
 - `internal/resource/`
