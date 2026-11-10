@@ -51,6 +51,8 @@ func (a *KubeBlockEnterpriseProvider) Metadata(_ context.Context, _ provider.Met
 func (a *KubeBlockEnterpriseProvider) Resources(context.Context) []func() tfresource.Resource {
 	return []func() tfresource.Resource{
 		res.NewClusterResource,
+		res.NewBackupResource,
+		res.NewRestoreResource,
 	}
 }
 

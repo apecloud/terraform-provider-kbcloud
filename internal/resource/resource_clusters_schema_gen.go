@@ -180,7 +180,6 @@ func ClustersResourceSchema() schema.Schema {
 						},
 
 						"skip_resource_constraints": schema.BoolAttribute{
-							Computed:    true,
 							Optional:    true,
 							Description: "Whether to skip resource constraint validation when creating cluster",
 						},
@@ -302,7 +301,6 @@ func ClustersResourceSchema() schema.Schema {
 					Attributes: map[string]schema.Attribute{
 
 						"component": schema.StringAttribute{
-							Computed:    true,
 							Optional:    true,
 							Description: "component type, refer to componentDef and support NamePrefix'",
 						},
@@ -310,24 +308,20 @@ func ClustersResourceSchema() schema.Schema {
 						"init_params": schema.
 							MapAttribute{
 							ElementType: types.StringType,
-							Computed:    true,
 							Optional:    true,
 						},
 
 						"spec_name": schema.StringAttribute{
-							Computed:    true,
 							Optional:    true,
 							Description: "config spec name",
 						},
 
 						"config_file_name": schema.StringAttribute{
-							Computed:    true,
 							Optional:    true,
-							Description: "configuration file name for reconfigure operation (e.g., my.cnf, postgresql.conf)",
+							Description: "Configuration file to update; inferred from engine and component when omitted.",
 						},
 					},
 				},
-				Computed:    true,
 				Optional:    true,
 				Description: "InitOptions is the list of init option",
 			},

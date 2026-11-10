@@ -350,6 +350,11 @@ func ClustersDataSourceSchema() schema.Schema {
 							Computed:    true,
 							Description: "config spec name",
 						},
+
+						"config_file_name": schema.StringAttribute{
+							Computed:    true,
+							Description: "Configuration file to update; inferred from engine and component when omitted.",
+						},
 					},
 				},
 				Computed:    true,

@@ -1,0 +1,5 @@
+org_name         = "my-org"
+environment_name = "my-environment"
+cluster_name     = "dolphindb-standalone"
+mode             = "standalone"
+storage_class    = "my-expandable-storage-class"

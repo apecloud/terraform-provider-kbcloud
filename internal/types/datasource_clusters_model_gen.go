@@ -1228,16 +1228,18 @@ func (m *IoReservesDataSourceModel) Merge(remote *IoReservesDataSourceModel) {
 }
 
 type InitOptionsDataSourceModel struct {
-	Component  types.String `tfsdk:"component"`
-	InitParams types.Map    `tfsdk:"init_params"`
-	SpecName   types.String `tfsdk:"spec_name"`
+	Component      types.String `tfsdk:"component"`
+	InitParams     types.Map    `tfsdk:"init_params"`
+	SpecName       types.String `tfsdk:"spec_name"`
+	ConfigFileName types.String `tfsdk:"config_file_name"`
 }
 
 func (v InitOptionsDataSourceModel) AttributeTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"component":   types.StringType,
-		"init_params": types.MapType{ElemType: types.StringType},
-		"spec_name":   types.StringType,
+		"component":        types.StringType,
+		"init_params":      types.MapType{ElemType: types.StringType},
+		"spec_name":        types.StringType,
+		"config_file_name": types.StringType,
 	}
 }
 
@@ -1262,6 +1264,11 @@ func (m *InitOptionsDataSourceModel) RefreshFromAPI(ctx context.Context, apiData
 	} else {
 		m.SpecName = types.StringNull()
 	}
+	if val, ok := apiData["configFileName"]; ok && val != nil {
+		m.ConfigFileName = types.StringValue(val.(string))
+	} else {
+		m.ConfigFileName = types.StringNull()
+	}
 
 	return diags
 }
@@ -1275,6 +1282,9 @@ func (m *InitOptionsDataSourceModel) Merge(remote *InitOptionsDataSourceModel) {
 	}
 	if m.SpecName.IsNull() || m.SpecName.IsUnknown() {
 		m.SpecName = remote.SpecName
+	}
+	if m.ConfigFileName.IsNull() || m.ConfigFileName.IsUnknown() {
+		m.ConfigFileName = remote.ConfigFileName
 	}
 }
 

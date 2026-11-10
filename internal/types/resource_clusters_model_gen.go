@@ -248,30 +248,7 @@ func (m *ClustersResourceModel) RefreshFromAPI(ctx context.Context, apiData map[
 	} else {
 		m.Components = types.ListNull(types.ObjectType{AttrTypes: ComponentsResourceModel{}.AttributeTypes()})
 	}
-	if val, ok := apiData["initOptions"]; ok && val != nil {
-		var items []attr.Value
-		var oldElements []InitOptionsResourceModel
-		if !m.InitOptions.IsNull() && !m.InitOptions.IsUnknown() {
-			m.InitOptions.ElementsAs(ctx, &oldElements, false)
-		}
-		for i, item := range val.([]interface{}) {
-			objMap := item.(map[string]interface{})
-			var objModel InitOptionsResourceModel
-			if i < len(oldElements) {
-				objModel = oldElements[i]
-			}
-			d := objModel.RefreshFromAPI(ctx, objMap)
-			diags.Append(d...)
-			obj, d := types.ObjectValueFrom(ctx, objModel.AttributeTypes(), objModel)
-			diags.Append(d...)
-			items = append(items, obj)
-		}
-		list, d := types.ListValue(types.ObjectType{AttrTypes: InitOptionsResourceModel{}.AttributeTypes()}, items)
-		diags.Append(d...)
-		m.InitOptions = list
-	} else {
-		m.InitOptions = types.ListNull(types.ObjectType{AttrTypes: InitOptionsResourceModel{}.AttributeTypes()})
-	}
+	// skip updating initOptions
 	if val, ok := apiData["serviceRefs"]; ok && val != nil {
 		var items []attr.Value
 		var oldElements []ServiceRefsResourceModel
@@ -673,11 +650,7 @@ func (m *ComponentsResourceModel) RefreshFromAPI(ctx context.Context, apiData ma
 	} else {
 		m.Replicas = types.Int64Null()
 	}
-	if val, ok := apiData["skipResourceConstraints"]; ok && val != nil {
-		m.SkipResourceConstraints = types.BoolValue(val.(bool))
-	} else {
-		m.SkipResourceConstraints = types.BoolNull()
-	}
+	// skip updating skipResourceConstraints
 	if val, ok := apiData["classCode"]; ok && val != nil {
 		m.ClassCode = types.StringValue(val.(string))
 	} else {
@@ -1032,30 +1005,10 @@ func (v InitOptionsResourceModel) AttributeTypes() map[string]attr.Type {
 
 func (m *InitOptionsResourceModel) RefreshFromAPI(ctx context.Context, apiData map[string]interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
-	if val, ok := apiData["component"]; ok && val != nil {
-		m.Component = types.StringValue(val.(string))
-	} else {
-		m.Component = types.StringNull()
-	}
-	if val, ok := apiData["initParams"]; ok && val != nil {
-		mapValues := make(map[string]attr.Value)
-		for k, v := range val.(map[string]interface{}) {
-			mapValues[k] = types.StringValue(v.(string))
-		}
-		m.InitParams, _ = types.MapValue(types.StringType, mapValues)
-	} else {
-		m.InitParams = types.MapNull(types.StringType)
-	}
-	if val, ok := apiData["specName"]; ok && val != nil {
-		m.SpecName = types.StringValue(val.(string))
-	} else {
-		m.SpecName = types.StringNull()
-	}
-	if val, ok := apiData["configFileName"]; ok && val != nil {
-		m.ConfigFileName = types.StringValue(val.(string))
-	} else {
-		m.ConfigFileName = types.StringNull()
-	}
+	// skip updating component
+	// skip updating initParams
+	// skip updating specName
+	// skip updating configFileName
 
 	return diags
 }

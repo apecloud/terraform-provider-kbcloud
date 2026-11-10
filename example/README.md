@@ -13,6 +13,7 @@ Currently, the following examples are provided:
 *   **Redis** (`redis`): Standalone, Replication, Sentinel, and Cluster modes
 *   **MongoDB** (`mongodb`): Standalone, Replicaset, and Sharding modes
 *   **Kafka** (`kafka`): Combined, Separated, and withZookeeper modes
+*   **DolphinDB** (`dolphindb`): Standalone, Integrated, and Separated modes
 *   **SQL Server** (`mssql`): Cluster mode
 
 ## KubeBlocks (KB) Cluster Operations via Terraform
@@ -58,7 +59,7 @@ Executing `terraform destroy` will delete the cluster.
 
 ### Quick Start with Automation Scripts (Recommended)
 
-Each engine directory now includes an automated `run.sh` script for easy testing:
+For engine directories that include an automated `run.sh` script:
 
 1. Navigate to the engine directory: `cd mysql`
 2. View help: `./run.sh --help`
@@ -79,11 +80,11 @@ See [RUN_SCRIPT_GUIDE.md](mysql/RUN_SCRIPT_GUIDE.md) for detailed usage.
 
 ## Advanced Operations Examples
 
-Each engine directory now includes comprehensive examples using the new parameterized structure:
+Engine directories contain parameterized configurations and operation examples.
 
-### Unified Structure (All Engines)
+### Script-Based Example Structure
 
-All engines follow the same pattern after refactoring:
+The examples with automation scripts follow this pattern:
 
 - **main.tf**: Single parameterized cluster definition
 - **variables.tf**: All configurable parameters
@@ -155,6 +156,12 @@ terraform apply \
 - Multiple deployment modes (Combined, Separated, withZookeeper)
 - SASL authentication support
 - See [Kafka README](kafka/README.md) and [MULTI_MODE_GUIDE.md](kafka/MULTI_MODE_GUIDE.md)
+
+#### DolphinDB (`dolphindb/`)
+
+- Multiple topology modes (Standalone, Integrated, Separated)
+- Use Terraform directly with the mode-specific `.tfvars.example` files
+- See [DolphinDB README](dolphindb/README.md) and [backup and restore examples](dolphindb/backup-restore/README.md)
 
 #### SQL Server (`mssql/`)
 - Always On availability group configuration
